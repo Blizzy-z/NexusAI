@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect to NexusAI</title>
+<style>
+  body { margin:0; background:#000; color:#fff; font-family:-apple-system,sans-serif;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; padding:2rem; box-sizing:border-box; }
+  .card { background:#0a0a14; border:1px solid #1e1e3a; border-radius:20px;
+    padding:2rem; max-width:360px; width:100%; text-align:center; }
+  h1 { font-size:1.4rem; font-weight:800; margin:0 0 0.25rem; color:#818cf8; }
+  .sub { color:#64748b; font-size:0.8rem; margin:0 0 1.5rem; }
+  #qr { margin-bottom:1rem; }
+  #qr img { width:200px; height:200px; border-radius:12px; background:#fff; padding:8px; }
+  .url { background:#0f0f1a; border:1px solid #1e1e3a; border-radius:12px;
+    padding:0.75rem 1rem; font-family:monospace; font-size:0.9rem;
+    color:#818cf8; word-break:break-all; margin:0.75rem 0; cursor:pointer; }
+  .url:active { background:#1a1a2e; }
+  .open-btn { display:block; width:100%; padding:0.85rem; margin-top:0.75rem;
+    background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; font-size:1rem;
+    font-weight:700; border:none; border-radius:14px; cursor:pointer; text-decoration:none;
+    text-align:center; }
+  .steps { text-align:left; margin-top:1.5rem; border-top:1px solid #1e1e3a; padding-top:1.25rem; }
+  .steps h3 { font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; color:#374151; margin:0 0 0.75rem; }
+  .step { display:flex; gap:0.75rem; margin-bottom:0.6rem; align-items:flex-start; }
+  .num { background:#1e1e3a; color:#818cf8; border-radius:8px; width:22px; height:22px;
+    display:flex; align-items:center; justify-content:center; font-size:0.7rem;
+    font-weight:700; flex-shrink:0; margin-top:1px; }
+  .step-text { font-size:0.8rem; color:#94a3b8; line-height:1.4; }
+  .copied { color:#10b981; font-size:0.75rem; margin-top:0.25rem; opacity:0; transition:opacity 0.2s; }
+  .copied.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>⚡ NexusAI</h1>
+  <p class="sub">Open the phone app on any device on your WiFi</p>
+
+  <div id="qr"><p style="color:#4b5563;font-size:0.85rem;">Loading…</p></div>
+  <div class="url" id="url-display" onclick="copyUrl()" title="Tap to copy">Detecting…</div>
+  <div class="copied" id="copied-msg">✓ Copied!</div>
+  <a class="open-btn" id="open-btn" href="#" target="_blank">Open NexusAI →</a>
+
+  <div class="steps">
+    <h3>Add to Home Screen</h3>
+    <div class="step"><div class="num">1</div><div class="step-text">Scan the QR code with your camera, or tap <strong style="color:#fff">Open NexusAI →</strong></div></div>
+    <div class="step"><div class="num">2</div><div class="step-text">In Safari: tap <strong style="color:#fff">Share ⬆</strong> → <strong style="color:#fff">Add to Home Screen</strong></div></div>
+    <div class="step"><div class="num">3</div><div class="step-text">In Chrome (Android): tap <strong style="color:#fff">⋮ Menu</strong> → <strong style="color:#fff">Add to Home screen</strong></div></div>
+    <div class="step"><div class="num">4</div><div class="step-text">Launch as a standalone app — full screen, no browser chrome</div></div>
+  </div>
+</div>
+
+<script>
+let appUrl = '';
+fetch('/api/network-info').then(r => r.json()).then(data => {
+  appUrl = data.primaryUrl + '/app';
+  document.getElementById('url-display').textContent = appUrl;
+  document.getElementById('open-btn').href = appUrl;
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='
+    + encodeURIComponent(appUrl) + '&bgcolor=ffffff&color=000000&margin=8';
+  document.getElementById('qr').innerHTML = '<img src="' + qrUrl + '" alt="QR Code">';
+}).catch(() => {
+  appUrl = location.origin + '/app';
+  document.getElementById('url-display').textContent = appUrl;
+  document.getElementById('open-btn').href = appUrl;
+});
+
+function copyUrl() {
+  if (!appUrl) return;
+  navigator.clipboard.writeText(appUrl).then(() => {
+    const el = document.getElementById('copied-msg');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2000);
+  }).catch(() => {});
+}
+</script>
+</body>
+</html>

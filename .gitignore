@@ -1,0 +1,30 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.cursor
+.tmp
+JarvisTable.tsx
+BioSuitMonitor.tsx
+BioSuit.tsx
+Doomcase.tsx
+DroneRef.tsx
+SmartHome.tsx
+# Additional secrets and local-only files
+.openclaw/.env
+openclaw/.env
+nexus_auth.*
+elevenlabs_api_key.txt
+gemini_api_key.txt
+*.pem
+secrets.json
+# Ignore ComfyUI local cache and user folders (if present)
+ComfyUI\user\*
+AppData\Roaming\ComfyUI\*
+# Ignore session-state and Copilot workspace artifacts
+.copilot\session-state\*
+OLLAMA_API_KEY*
