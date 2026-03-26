@@ -232,20 +232,83 @@ export default function NexusPersonalAI() {
     setBusy(false);
   }, [input, busy, model, aiName, userName, tts, watching, lastShot]);
 
-  // Voice input 
-  const listen = () => {
+  // Voice input with robust error handling
+  const listen = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { addMsg('assistant', 'Voice not supported. Use Chrome.'); return; }
+    if (!SR) {
+      addMsg('assistant', '🎤 Voice not supported in this browser. Use Chrome or Edge for speech recognition.');
+      return;
+    }
+    
+    // Clean up any existing recognition
+    if (recRef.current) {
+      try { recRef.current.abort(); } catch {}
+      recRef.current = null;
+    }
+    
     setMicOn(true);
     const r = new SR();
     r.lang = userProfile?.language || 'en-US';
     r.interimResults = false;
+    r.continuous = false;
+    r.maxAlternatives = 1;
     recRef.current = r;
-    r.onresult = (e: any) => { setMicOn(false); send(e.results[0][0].transcript); };
-    r.onerror = () => setMicOn(false);
-    r.onend   = () => setMicOn(false);
-    r.start();
-  };
+
+    let handled = false;
+    
+    r.onresult = (e: any) => {
+      if (handled) return;
+      handled = true;
+      setMicOn(false);
+      const transcript = e.results?.[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        send(transcript);
+      }
+    };
+    
+    r.onerror = (e: any) => {
+      if (handled) return;
+      handled = true;
+      setMicOn(false);
+      
+      const code = e?.error?.toLowerCase?.() || '';
+      
+      // Don't show error for common non-issues
+      if (code === 'no-speech' || code === 'aborted') return;
+      
+      // Permission denied
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        addMsg('assistant', '🎤 Microphone permission denied. Please allow microphone access and try again.');
+        return;
+      }
+      
+      // Network issues
+      if (code === 'network') {
+        addMsg('assistant', '🎤 Speech recognition network error. Check your internet connection.');
+        return;
+      }
+      
+      // Audio capture failed
+      if (code === 'audio-capture') {
+        addMsg('assistant', '🎤 No microphone found. Please connect a microphone and try again.');
+        return;
+      }
+      
+      // Generic fallback
+      addMsg('assistant', `🎤 Voice error: ${e?.error || 'unknown'}. Try again.`);
+    };
+    
+    r.onend = () => {
+      if (!handled) setMicOn(false);
+    };
+    
+    try {
+      r.start();
+    } catch (e: any) {
+      setMicOn(false);
+      addMsg('assistant', `🎤 Failed to start voice: ${e?.message || 'unknown error'}`);
+    }
+  }, [userProfile?.language, send]);
 
   const copyMsg = (i: number, text: string) => {
     navigator.clipboard.writeText(text);
