@@ -7,7 +7,7 @@ import {
   BookOpen, StickyNote, CheckSquare, Target, Timer,
   Shield, Cpu as CpuIcon, Globe2
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 
 interface SidebarProps {
   activeTab: string;
@@ -42,7 +42,7 @@ const SECTIONS = [
     { id: 'code',       label: 'Nexus Code',        icon: Code },
   ]},
   { label: 'AI & Models', items: [
-    { id: 'models',     label: 'LLM Library',      icon: Library },
+    { id: 'models',     label: 'Model Manager',    icon: Library },
     { id: 'trainer',    label: 'Model Trainer',    icon: Brain },
     { id: 'aimaker',    label: 'AI Maker',          icon: Sparkles },
     { id: 'mesh',       label: 'NexusMesh 3D',     icon: Shapes },
@@ -274,3 +274,4 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     </div>
   );
 }
+

@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="/icon-180x180.png">
+<link rel="icon" type="image/x-icon" href="/nexusai.ico">
 <link rel="manifest" href="/manifest.json">
 <title>NexusAI</title>
 <style>
@@ -24,7 +25,8 @@
 }
 html,body{height:100%;height:-webkit-fill-available;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
-#app{display:flex;height:100%;height:-webkit-fill-available;padding-top:var(--safe-t);overflow:hidden}
+#app{display:flex;height:100%;height:-webkit-fill-available;padding-top:var(--safe-t);padding-left:var(--safe-l);padding-right:var(--safe-r);overflow:hidden;max-width:100vw;position:relative}
+.main,.page,.scroll,.topbar,.input-bar,.toolbar{max-width:100%;width:100%}
 
 /* ── Sidebar overlay (mobile drawer) ── */
 .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:90;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -262,23 +264,43 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
     <div class="sidebar-nav">
       <div class="nav-section" id="ns-main">
         <div class="nav-section-header" onclick="toggleSection('main')">
-          <div class="nav-section-label">Main</div>
+          <div class="nav-section-label">Core</div>
           <span class="nav-section-arrow open" id="nsa-main">›</span>
         </div>
         <div class="nav-section-body" id="nsb-main">
+          <button class="nav-item" data-page="dashboard" onclick="navTo('dashboard')"><span class="icon">📊</span> Dashboard</button>
           <button class="nav-item" data-page="business" onclick="navTo('business')"><span class="icon">💼</span> Business Hub</button>
-          <button class="nav-item" data-page="centre" onclick="navTo('centre')"><span class="icon">⚡</span> The Centre</button>
-          <button class="nav-item active" data-page="chat" onclick="navTo('chat')"><span class="icon">💬</span> Chat Studio</button>
+          <button class="nav-item" data-page="centre" onclick="navTo('centre')"><span class="icon">⚡</span> Command Center</button>
+          <button class="nav-item" data-page="aitools" onclick="navTo('aitools')"><span class="icon">✨</span> AI Tools Hub</button>
+          <button class="nav-item active" data-page="chat" onclick="navTo('chat')"><span class="icon">💬</span> Chat</button>
           <button class="nav-item" data-page="call" onclick="navTo('call')"><span class="icon">📞</span> Voice Call</button>
-          <button class="nav-item" data-page="agent" onclick="navTo('agent')"><span class="icon">🤖</span> Nexus Agent</button>
+          <button class="nav-item" data-page="agent" onclick="navTo('agent')"><span class="icon">🤖</span> Autonomous Agent</button>
+          <button class="nav-item" data-page="agents" onclick="navTo('agents')"><span class="icon">🧠</span> Agent Swarm</button>
+          <button class="nav-item" data-page="code" onclick="navTo('code')"><span class="icon">💻</span> Nexus Code</button>
+          <button class="nav-item" data-page="media" onclick="navTo('media')"><span class="icon">🎬</span> Media Studio</button>
+          <button class="nav-item" data-page="models" onclick="navTo('models')"><span class="icon">📚</span> Model Manager</button>
+          <button class="nav-item" data-page="trainer" onclick="navTo('trainer')"><span class="icon">🧠</span> Model Trainer</button>
+          <button class="nav-item" data-page="aimaker" onclick="navTo('aimaker')"><span class="icon">🪄</span> AI Maker</button>
+          <button class="nav-item" data-page="mesh" onclick="navTo('mesh')"><span class="icon">🧊</span> NexusMesh 3D</button>
+          <button class="nav-item" data-page="youtube" onclick="navTo('youtube')"><span class="icon">▶️</span> YouTube Center</button>
           <button class="nav-item" data-page="terminal" onclick="navTo('terminal')"><span class="icon">💻</span> Terminal</button>
-          <button class="nav-item" data-page="browser" onclick="navTo('browser')"><span class="icon">🌐</span> Browser</button>
+          <button class="nav-item" data-page="browser" onclick="navTo('browser')"><span class="icon">🌐</span> Web Workspace</button>
+          <button class="nav-item" data-page="osbuilder" onclick="navTo('osbuilder')"><span class="icon">🧱</span> OS Builder</button>
+          <button class="nav-item" data-page="doomcase" onclick="navTo('doomcase')"><span class="icon">🧰</span> Doomcase OS</button>
+          <button class="nav-item" data-page="kali" onclick="navTo('kali')"><span class="icon">🖥️</span> Kali VM</button>
+          <button class="nav-item" data-page="claw" onclick="navTo('claw')"><span class="icon">🦾</span> NexusClaw</button>
+          <button class="nav-item" data-page="smarthome" onclick="navTo('smarthome')"><span class="icon">🏠</span> Smart Home</button>
+          <button class="nav-item" data-page="biosuit" onclick="navTo('biosuit')"><span class="icon">🛡️</span> BioSuit Monitor</button>
+          <button class="nav-item" data-page="jarvis" onclick="navTo('jarvis')"><span class="icon">🧪</span> Jarvis Table AI</button>
+          <button class="nav-item" data-page="droneref" onclick="navTo('droneref')"><span class="icon">🚁</span> Drone Gesture Ref</button>
+          <button class="nav-item" data-page="dev" onclick="navTo('dev')"><span class="icon">🧰</span> Dev Center</button>
+          <button class="nav-item" data-page="admin" onclick="navTo('admin')"><span class="icon">🔐</span> Admin Center</button>
         </div>
       </div>
 
       <div class="nav-section" id="ns-lifehub">
         <div class="nav-section-header" onclick="toggleSection('lifehub')">
-          <div class="nav-section-label">Life Hub</div>
+          <div class="nav-section-label">Personal</div>
           <span class="nav-section-arrow open" id="nsa-lifehub">›</span>
         </div>
         <div class="nav-section-body" id="nsb-lifehub">
@@ -299,7 +321,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
       <div class="nav-section" id="ns-discover">
         <div class="nav-section-header" onclick="toggleSection('discover')">
-          <div class="nav-section-label">Discover</div>
+          <div class="nav-section-label">Explore</div>
           <span class="nav-section-arrow open" id="nsa-discover">›</span>
         </div>
         <div class="nav-section-body" id="nsb-discover">
@@ -312,7 +334,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
       <div class="nav-section" id="ns-aitools">
         <div class="nav-section-header" onclick="toggleSection('aitools')">
-          <div class="nav-section-label">AI Tools</div>
+          <div class="nav-section-label">Create</div>
           <span class="nav-section-arrow open" id="nsa-aitools">›</span>
         </div>
         <div class="nav-section-body" id="nsb-aitools">
@@ -329,7 +351,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
       <div class="nav-section" id="ns-intel">
         <div class="nav-section-header" onclick="toggleSection('intel')">
-          <div class="nav-section-label">Intel & Tools</div>
+          <div class="nav-section-label">Ops</div>
           <span class="nav-section-arrow open" id="nsa-intel">›</span>
         </div>
         <div class="nav-section-body" id="nsb-intel">
@@ -341,7 +363,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
       <div class="nav-section" id="ns-system">
         <div class="nav-section-header" onclick="toggleSection('system')">
-          <div class="nav-section-label">System</div>
+          <div class="nav-section-label">Control</div>
           <span class="nav-section-arrow open" id="nsa-system">›</span>
         </div>
         <div class="nav-section-body" id="nsb-system">
@@ -353,8 +375,8 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
       <div class="conn-pill" id="conn-pill">
         <div class="conn-dot grey" id="conn-dot"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600" id="conn-label">Not connected to PC</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px" id="conn-sub">Using local keys only</div>
+          <div style="font-size:12px;font-weight:600" id="conn-label">Server offline</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px" id="conn-sub">Using local AI keys</div>
         </div>
       </div>
     </div>
@@ -370,7 +392,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
     <!-- Top bar -->
     <div class="topbar">
       <button class="menu-btn" onclick="openSidebar()">☰</button>
-      <div class="topbar-title" id="page-title">Chat Studio</div>
+      <div class="topbar-title" id="page-title">Chat</div>
       <div class="topbar-badges">
         <span class="badge badge-indigo" id="model-badge">Gemini</span>
         <span class="badge badge-green" id="stt-badge" style="display:none">🎤</span>
@@ -549,11 +571,11 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
       <div class="settings-page">
         <!-- ── SERVER MANAGEMENT ── -->
         <div class="sgroup">
-          <h3>🖥 NexusAI Server</h3>
+          <h3>🖥 Server Connection</h3>
           <div class="scard">
             <div class="srow">
               <span class="slabel">Server URL</span>
-              <input class="sinput" id="s-pc-url" placeholder="http://192.168.1.84:3000" type="url">
+               <input class="sinput" id="s-pc-url" placeholder="https://nexusais.app or http://192.168.1.84:3000" type="url">
             </div>
             <div class="srow">
               <span class="slabel">Port</span>
@@ -562,8 +584,8 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
             <div class="srow">
               <span class="slabel">Connection type</span>
               <select id="s-conn-type" style="background:transparent;border:none;outline:none;color:var(--text);font-size:13px;text-align:right">
-                <option value="lan" selected>Local Network (LAN)</option>
-                <option value="manual">Custom URL</option>
+                <option value="lan" selected>Auto (same URL as this app)</option>
+                <option value="manual">Manual URL</option>
               </select>
             </div>
           </div>
@@ -617,31 +639,33 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
 
         <!-- ── OLLAMA GATEWAY ── -->
         <div class="sgroup">
-          <h3>🦙 Ollama Direct</h3>
+          <h3>🦙 Ollama Connection</h3>
           <div class="scard">
-            <div class="srow"><span class="slabel">Ollama URL</span><input class="sinput" id="s-ollama-url" placeholder="http://192.168.1.84:11434" type="url"></div>
+             <div class="srow"><span class="slabel">Ollama URL</span><input class="sinput" id="s-ollama-url" placeholder="Optional: http://192.168.1.84:11434" type="url"></div>
           </div>
           <button onclick="testOllamaConnection()" style="width:100%;margin-top:8px;padding:10px;background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer">
             🔌 Test & Load Models
           </button>
           <div id="ollama-conn-result" style="font-size:12px;margin-top:8px;text-align:center;color:var(--muted)"></div>
-          <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,.03);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
-            PC Ollama env vars needed:<br>
-            <span style="color:#34d399;font-family:monospace">OLLAMA_HOST=0.0.0.0:11434</span><br>
-            <span style="color:#34d399;font-family:monospace">OLLAMA_API_KEY=your-secret</span>
-          </div>
+             <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,.03);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
+             Recommended: leave Ollama URL empty to use NexusAI server proxy.<br>
+             Direct mode (optional) requires:<br>
+             <span style="color:#34d399;font-family:monospace">OLLAMA_HOST=0.0.0.0:11434</span><br>
+             <span style="color:#34d399;font-family:monospace">OLLAMA_API_KEY=your-secret</span>
+           </div>
         </div>
 
         <!-- ── REMOVE / RESET ── -->
         <div class="sgroup">
-          <h3>🌍 Remote Access (Outside Home)</h3>
+          <h3>🌍 Cloudflare Access</h3>
           <div style="padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:8px">
-            Your server is only accessible on your home WiFi by default.<br>
-            To access from anywhere (phone data, work, etc.) start a tunnel:
+            Your always-on public URL is:<br>
+            <span style="color:#818cf8;font-family:monospace">https://nexusais.app</span><br>
+            Use this URL from anywhere (mobile data, work, travel).
           </div>
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <button onclick="startTunnel()" id="tunnel-start-btn" style="flex:1;padding:10px;background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.25);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer">
-              🌐 Start Tunnel
+              🌐 Check Tunnel
             </button>
             <button onclick="stopTunnel()" style="flex:1;padding:10px;background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.15);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer">
               ✕ Stop
@@ -649,9 +673,9 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
           </div>
           <div id="tunnel-status" style="font-size:12px;color:var(--muted);text-align:center;padding:8px;background:var(--bg3);border-radius:10px;display:none;word-break:break-all;line-height:1.6"></div>
           <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,.03);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
-            Needs cloudflared installed:<br>
-            <span style="color:#34d399;font-family:monospace">winget install Cloudflare.cloudflared</span><br>
-            Then run setup-tunnel.bat on PC for permanent setup.
+             If status shows down, verify the tunnel service on PC:<br>
+             <span style="color:#34d399;font-family:monospace">sc query cloudflared-nexusai</span><br>
+             Then restart NexusAI if needed.
           </div>
         </div>
 
@@ -728,8 +752,8 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
     <div class="page" id="page-agent">
       <div class="section-header">
         <div style="flex:1">
-          <div style="font-weight:700;font-size:15px">🤖 Nexus Agent</div>
-          <div style="font-size:11px;color:var(--muted)" id="agent-status-label">Thinks, writes code, runs it on your PC, loops until done</div>
+          <div style="font-weight:700;font-size:15px">🤖 Autonomous Agent</div>
+          <div style="font-size:11px;color:var(--muted)" id="agent-status-label">Plans, writes code, and runs tasks on your PC end-to-end</div>
         </div>
         <button class="btn-small" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)" onclick="clearAgent()">Clear</button>
       </div>
@@ -982,8 +1006,8 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
         <!-- Header -->
         <div style="text-align:center;padding:8px 0 4px">
           <div style="font-size:32px;margin-bottom:6px">⚡</div>
-          <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px">The Centre</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px">Your AI command hub — everything in one place</div>
+          <div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px">Command Center</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">Your AI control hub for models, tools, and live status</div>
         </div>
 
         <!-- Gemma routing status -->
@@ -1070,7 +1094,7 @@ input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-ou
             <div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:8px;align-items:center">
               <select id="self-target" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);outline:none">
                 <option value="public/app.html">📱 Phone App (app.html)</option>
-                <option value="src/pages/Chat.tsx">💬 Chat Studio</option>
+                <option value="src/pages/Chat.tsx">💬 Chat</option>
                 <option value="src/components/AISidebar.tsx">🤖 AI Sidebar</option>
                 <option value="src/pages/LifeHub.tsx">🧠 Life Hub</option>
                 <option value="src/pages/Agents.tsx">👥 Agent Swarm</option>
@@ -1609,12 +1633,31 @@ print('Hello from NexusAI!')"></textarea>
       </div>
     </div>
 
+    <!-- ═══ MOBILE FALLBACK PAGE (keeps app in iOS shell) ═══ -->
+    <div class="page" id="page-mobile-module">
+      <div class="section-header">
+        <div style="font-size:15px;font-weight:700">📱 <span id="mobile-module-title">Mobile Module</span></div>
+        <span class="badge badge-indigo" id="mobile-module-state" style="font-size:10px">Mobile-safe mode active</span>
+      </div>
+      <div class="scroll" style="padding:14px;display:flex;flex-direction:column;gap:12px;padding-bottom:calc(14px + var(--safe-b))">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px">iOS Friendly View</div>
+          <div id="mobile-module-body" style="font-size:14px;color:var(--text);line-height:1.65">
+            This section is being optimized for phone and tablet layout. You are still inside the mobile web app.
+          </div>
+          <div id="mobile-module-pills" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div>
+        </div>
+        <button id="mobile-module-primary" style="padding:12px;background:var(--indigo2);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer">Open Chat</button>
+        <button id="mobile-module-secondary" style="padding:11px;background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer">Open Settings</button>
+      </div>
+    </div>
+
     <!-- ═══ STANDALONE ONBOARDING (shown when no API key) ═══ -->
     <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center">
       <div style="max-width:360px;width:100%">
         <div style="font-size:48px;margin-bottom:16px">⚡</div>
         <div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:8px">Welcome to NexusAI</div>
-        <div style="font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6">Works completely standalone on your phone — just add your Gemini API key (free) to get started.</div>
+        <div style="font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6">Use NexusAI standalone, on local Wi-Fi, or through your Cloudflare domain from anywhere.</div>
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;text-align:left">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px">Step 1 — Get your free Gemini key</div>
           <a href="https://aistudio.google.com/apikey" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:var(--indigo);text-decoration:none;font-size:14px;font-weight:600">
@@ -1710,6 +1753,43 @@ function ls(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.p
 function lss(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
 function uid() { return Math.random().toString(36).slice(2,10); }
 function today() { return new Date().toISOString().slice(0,10); }
+function normalizeUrl(url) { return (url || '').trim().replace(/\/$/, ''); }
+function getHostnameFromUrl(url) {
+  try { return new URL(url).hostname.toLowerCase(); } catch { return ''; }
+}
+function isLocalHostname(host) {
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+}
+function isPrivateHostname(host) {
+  return /^192\.168\./.test(host) || /^10\./.test(host) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host);
+}
+function isPublicHostedOrigin(url) {
+  const host = getHostnameFromUrl(url);
+  return !!host && !isLocalHostname(host) && !isPrivateHostname(host);
+}
+function getEffectiveServerBase() {
+  return normalizeUrl(S.pcUrl) || normalizeUrl(window.location.origin);
+}
+function toDisplayHost(url) {
+  return normalizeUrl(url).replace(/^https?:\/\//, '');
+}
+function getPreferredHttpsUrl(rawUrl) {
+  try {
+    const u = new URL(rawUrl || window.location.href);
+    if (u.protocol === 'https:') return u.toString();
+    const host = u.hostname.toLowerCase();
+    const localOrLan = isLocalHostname(host) || isPrivateHostname(host);
+    u.protocol = 'https:';
+    if (localOrLan && (u.port === '' || u.port === '80' || u.port === '3000')) {
+      u.port = '3001';
+    } else if (!localOrLan && u.port === '80') {
+      u.port = '';
+    }
+    return u.toString();
+  } catch {
+    return (rawUrl || window.location.href).replace(/^http:/, 'https:');
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // INIT
@@ -1825,14 +1905,15 @@ function loadSettingsUI() {
 function updateStatusInfo() {
   const el = document.getElementById('s-status');
   if (!el) return;
-  const autoUrl = window.location.origin;
-  const effectiveUrl = S.pcUrl || autoUrl;
+  const effectiveUrl = getEffectiveServerBase();
+  const runningOnCloud = isPublicHostedOrigin(window.location.origin);
   el.innerHTML = `
     <div style="display:grid;gap:4px">
-      <div>Ollama direct: ${S.ollamaConnected ? '<span style="color:#10b981">✅ ' + S.ollamaModels.length + ' models</span>' : '<span style="color:#f59e0b">⚠ Not connected</span>'}</div>
+      <div>Ollama: ${S.ollamaConnected ? '<span style="color:#10b981">✅ ' + S.ollamaModels.length + ' models</span>' : '<span style="color:#f59e0b">⚠ Not connected</span>'}</div>
       <div>Ollama URL: <span style="color:#34d399;font-family:monospace;font-size:11px">${S.ollamaUrl || 'not set'}</span></div>
-      <div>NexusAI PC: ${S.pcConnected ? '<span style="color:#10b981">✅ Connected</span>' : '<span style="color:#6b7280">Not connected</span>'}</div>
-      <div>PC URL: <span style="color:#818cf8;font-family:monospace;font-size:11px">${effectiveUrl}</span></div>
+      <div>Server link: ${S.pcConnected ? '<span style="color:#10b981">✅ Connected</span>' : '<span style="color:#6b7280">Not connected</span>'}</div>
+      <div>Server URL: <span style="color:#818cf8;font-family:monospace;font-size:11px">${effectiveUrl || 'not set'}</span></div>
+      <div>Mode: ${runningOnCloud ? '<span style="color:#10b981">Cloudflare Remote</span>' : '<span style="color:#94a3b8">Local / LAN</span>'}</div>
       <div>Gemini key: ${S.geminiKey ? '✅ Set' : '<span style="color:#f87171">❌ Missing — add below</span>'}</div>
       <div>ElevenLabs: ${S.elKey ? '✅ Set' : '<span style="color:#6b7280">Not set (free TTS fallback)</span>'}</div>
     </div>
@@ -1843,20 +1924,32 @@ function updateStatusInfo() {
 // PC CONNECTION
 // ══════════════════════════════════════════════════════════════════════════════
 async function testOllamaConnection() {
-  const url = (document.getElementById('s-ollama-url')?.value||'').trim().replace(/\/$/,'');
+  const directUrl = normalizeUrl(document.getElementById('s-ollama-url')?.value || '');
   const key  = (document.getElementById('s-ollama-key')?.value||'').trim();
   const el   = document.getElementById('ollama-conn-result');
-  if (!url) { el.textContent = 'Enter Ollama URL first'; return; }
+  const serverBase = getEffectiveServerBase();
+  const usingDirect = !!directUrl;
+  const url = usingDirect ? directUrl : (serverBase ? `${serverBase}/ollama` : '');
+  if (!url) { el.textContent = 'Set Server URL or Ollama URL first'; return; }
   el.style.color = 'var(--muted)';
   el.textContent = '⏳ Connecting to ' + url + '…';
   try {
-    const headers = key ? { 'Authorization': 'Bearer ' + key } : {};
+    const headers = {};
+    if (usingDirect && key) headers['Authorization'] = 'Bearer ' + key;
+    if (!usingDirect && S.pcToken) headers['x-nexus-token'] = S.pcToken;
     const r = await fetch(url + '/api/tags', { headers, signal: AbortSignal.timeout(5000) });
-    if (r.status === 401) throw new Error('Wrong API key');
+    if (r.status === 401) throw new Error(usingDirect ? 'Wrong API key' : 'Invalid NexusAI token');
     if (!r.ok) throw new Error('Server error ' + r.status);
     const d = await r.json();
     const models = (d.models||[]).map(m=>m.name);
-    S.ollamaUrl = url; S.ollamaApiKey = key; S.ollamaConnected = true;
+    if (usingDirect) {
+      S.ollamaUrl = directUrl;
+      S.ollamaApiKey = key;
+    } else {
+      S.ollamaUrl = '';
+      S.ollamaApiKey = '';
+    }
+    S.ollamaConnected = true;
     S.ollamaModels = models;
     // Update dropdowns
     ['ollama-group','ollama-group-call'].forEach(id => {
@@ -1868,69 +1961,46 @@ async function testOllamaConnection() {
     });
     el.style.color = '#10b981';
     el.textContent = models.length > 0
-      ? `✅ Connected — ${models.length} model${models.length>1?'s':''}: ${models.slice(0,3).join(', ')}${models.length>3?'…':''}`
+      ? `✅ ${usingDirect ? 'Direct' : 'Proxy'} connected — ${models.length} model${models.length>1?'s':''}: ${models.slice(0,3).join(', ')}${models.length>3?'…':''}`
       : '✅ Connected but no models pulled yet';
     saveSettings();
     updateConnStatus();
     showToast(`✓ ${models.length} Ollama models loaded`);
   } catch(e) {
     el.style.color = '#ef4444';
-    el.textContent = '❌ ' + e.message + ' — check URL and that OLLAMA_HOST=0.0.0.0';
+    el.textContent = usingDirect
+      ? ('❌ ' + e.message + ' — check URL and OLLAMA_HOST=0.0.0.0')
+      : ('❌ ' + e.message + ' — check server URL and Nexus token');
     S.ollamaConnected = false;
   }
 }
 
 async function tryPcConnect() {
-  // Determine effective server URL
-  // Priority: 1) saved pcUrl (user manually set LAN IP) 2) window.location.origin if it's a local IP
-  const origin = window.location.origin;
-  const isLanIp = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(origin);
-  const isTunnel = origin.includes('.trycloudflare.com') || origin.includes('.ngrok') || origin.includes('.loca.lt');
-  const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+  const origin = normalizeUrl(window.location.origin);
+  const saved = normalizeUrl(S.pcUrl);
+  const originHost = getHostnameFromUrl(origin);
+  const candidates = [];
+  if (saved) candidates.push(saved);
+  if (!isLocalHostname(originHost)) candidates.push(origin);
 
-  // Auto-detect LAN IP from origin (only if it's actually a local IP)
-  if (!S.pcUrl && isLanIp) {
-    S.pcUrl = origin;
-    const s = ls('nxa_settings', {});
-    s.pcUrl = origin;
-    lss('nxa_settings', s);
-    const el = document.getElementById('s-pc-url');
-    if (el) el.value = origin;
-  }
-
-  // If serving via tunnel and no manual pcUrl set, try to get the local IP from the server
-  if (!S.pcUrl && isTunnel) {
+  for (const url of [...new Set(candidates)]) {
     try {
-      const r = await fetch(origin + '/api/network-info', { signal: AbortSignal.timeout(3000) });
-      if (r.ok) {
-        const d = await r.json();
-        const localIp = d.localIps?.[0];
-        if (localIp) {
-          S.pcUrl = 'http://' + localIp + ':3000';
-          const el = document.getElementById('s-pc-url');
-          if (el) el.value = S.pcUrl;
-        }
-      }
-    } catch {}
-  }
-
-  const url = S.pcUrl || (isLanIp ? origin : '');
-  if (!url || isLocalhost) return;
-
-  try {
-    const headers = S.pcToken ? { 'x-nexus-token': S.pcToken } : {};
-    const r = await fetch(`${url}/api/health`, { headers, signal: AbortSignal.timeout(5000) });
-    if (r.ok) {
+      const headers = S.pcToken ? { 'x-nexus-token': S.pcToken } : {};
+      const r = await fetch(`${url}/api/health`, { headers, signal: AbortSignal.timeout(5000) });
+      if (!r.ok) continue;
       S.pcUrl = url;
       S.pcConnected = true;
+      const urlInput = document.getElementById('s-pc-url');
+      if (urlInput) urlInput.value = url;
       updateConnStatus();
       await loadOllamaModels();
-      // Hide standalone banner if PC connected
       const sb = document.getElementById('standalone-banner');
       if (sb) sb.style.display = 'none';
       return;
+    } catch(e) {
+      console.log('tryPcConnect failed:', e.message);
     }
-  } catch(e) { console.log('tryPcConnect failed:', e.message); }
+  }
   S.pcConnected = false;
   updateConnStatus();
   // Show standalone banner if we have a Gemini key
@@ -1970,7 +2040,7 @@ async function testConnection() {
     }
   } catch(e) {
     el.style.color = '#ef4444';
-    el.textContent = `❌ Can't reach ${url}. Same WiFi?`;
+    el.textContent = `❌ Can't reach ${url}. Check URL/token and that NexusAI is running.`;
   }
 }
 
@@ -1978,29 +2048,34 @@ function updateConnStatus() {
   const dot = document.getElementById('conn-dot');
   const label = document.getElementById('conn-label');
   const sub = document.getElementById('conn-sub');
+  const hint = document.getElementById('https-hint');
+  const hintUrl = document.getElementById('https-url-hint');
   if (S.pcConnected) {
+    const activeUrl = normalizeUrl(S.pcUrl) || normalizeUrl(window.location.origin);
+    const activeHost = getHostnameFromUrl(activeUrl);
     dot.className = 'conn-dot green';
-    label.textContent = 'Connected to PC';
-    sub.textContent = S.pcUrl.replace('http://','');
-    // Show HTTPS hint if on HTTP
-    const isHttp = location.protocol === 'http:' && !location.hostname.includes('localhost');
-    const hint = document.getElementById('https-hint');
-    const hintUrl = document.getElementById('https-url-hint');
+    label.textContent = isPublicHostedOrigin(activeUrl) ? 'Connected via Cloudflare' : 'Connected to NexusAI';
+    sub.textContent = toDisplayHost(activeUrl);
+    // Show HTTPS hint only for local/LAN HTTP hosts
+    const isHttp = location.protocol === 'http:' && (isLocalHostname(location.hostname.toLowerCase()) || isPrivateHostname(location.hostname.toLowerCase()));
     if (hint && isHttp) {
-      const httpsUrl = (S.pcUrl||location.origin).replace('http://','https://').replace(':3000',':3001');
+      const httpsUrl = getPreferredHttpsUrl(S.pcUrl || location.href);
       hint.style.display = 'block';
       if (hintUrl) hintUrl.textContent = httpsUrl;
+    } else if (hint) {
+      hint.style.display = 'none';
     }
   } else {
     dot.className = 'conn-dot grey';
-    label.textContent = 'Not connected to PC';
-    sub.textContent = 'Using local keys only';
+    label.textContent = 'Server offline';
+    sub.textContent = 'Using local AI keys';
+    if (hint) hint.style.display = 'none';
   }
   updateStatusInfo();
 }
 
 async function loadOllamaModels() {
-  // Try direct Ollama URL first, fall back to NexusAI proxy
+  // Try direct Ollama URL first, then NexusAI proxy endpoints
   if (S.ollamaUrl) {
     try {
       const headers = S.ollamaApiKey ? { 'Authorization': 'Bearer ' + S.ollamaApiKey } : {};
@@ -2014,17 +2089,28 @@ async function loadOllamaModels() {
       }
     } catch(e) { console.log('Direct Ollama failed:', e.message); }
   }
-  // Fallback: NexusAI proxy
-  const url = S.pcUrl || window.location.origin;
+  const url = getEffectiveServerBase();
   if (!url) return;
+  const headers = S.pcToken ? { 'x-nexus-token': S.pcToken } : {};
   try {
-    const headers = S.pcToken ? { 'x-nexus-token': S.pcToken } : {};
     const r = await fetch(`${url}/api/nexuslink/ollama-models`, { headers, signal: AbortSignal.timeout(5000) });
-    if (!r.ok) return;
-    const d = await r.json();
-    S.ollamaModels = d.models || [];
+    if (r.ok) {
+      const d = await r.json();
+      S.ollamaModels = d.models || [];
+      S.ollamaConnected = true;
+      populateOllamaDropdowns();
+      return;
+    }
+    const publicR = await fetch(`${url}/api/models`, { signal: AbortSignal.timeout(5000) });
+    if (!publicR.ok) throw new Error('model list unavailable');
+    const publicD = await publicR.json();
+    S.ollamaModels = publicD.models || [];
+    S.ollamaConnected = true;
     populateOllamaDropdowns();
-  } catch(e) { console.log('Proxy Ollama failed:', e.message); }
+  } catch(e) {
+    S.ollamaConnected = false;
+    console.log('Proxy Ollama failed:', e.message);
+  }
 }
 
 function populateOllamaDropdowns() {
@@ -2051,10 +2137,13 @@ async function askAI(prompt, sys, model, options) {
   const modelId  = model.slice(colonIdx + 1); // e.g. 'dolphin-llama3:8b' preserved intact
 
   if (provider === 'ollama') {
-    const base = S.ollamaUrl || (S.pcUrl ? S.pcUrl.replace(':3000',':11434') : '');
-    if (!base) throw new Error('No Ollama URL set. Go to Settings → Ollama Gateway.');
+    const serverBase = getEffectiveServerBase();
+    const usingDirect = !!S.ollamaUrl;
+    const base = S.ollamaUrl || (serverBase ? `${serverBase}/ollama` : '');
+    if (!base) throw new Error('No Ollama backend found. Set Server URL or direct Ollama URL in Settings.');
     const headers = { 'Content-Type': 'application/json' };
-    if (S.ollamaApiKey) headers['Authorization'] = 'Bearer ' + S.ollamaApiKey;
+    if (usingDirect && S.ollamaApiKey) headers['Authorization'] = 'Bearer ' + S.ollamaApiKey;
+    if (!usingDirect && S.pcToken) headers['x-nexus-token'] = S.pcToken;
 
     // Build system+prompt string for /api/generate fallback
     const fullPrompt = sys ? `${sys}\n\nUser: ${prompt}\nAssistant:` : prompt;
@@ -2087,7 +2176,7 @@ async function askAI(prompt, sys, model, options) {
       });
     }
 
-    if (r.status === 401) throw new Error('Wrong API key — check Settings → Ollama API Key');
+    if (r.status === 401) throw new Error(usingDirect ? 'Wrong API key — check Settings → Ollama API Key' : 'Unauthorized — add NexusAI token in Settings');
     if (r.status === 404) throw new Error(`Model "${modelId}" not found — run: ollama pull ${modelId}`);
     if (!r.ok) {
       const errText = await r.text().catch(() => '');
@@ -2146,8 +2235,7 @@ async function askAI(prompt, sys, model, options) {
   if (!res.ok) throw new Error(data?.error?.message || `Gemini ${res.status}`);
 
   const parts = data?.candidates?.[0]?.content?.parts || [];
-  const text = parts.map(p => p.text||'').filter(Boolean).join('
-').trim();
+  const text = parts.map(p => p.text||'').filter(Boolean).join('\n').trim();
   const sources = (data?.candidates?.[0]?.groundingMetadata?.groundingChunks||[]).map(c=>c.web?.uri).filter(Boolean);
   return { text: text || '', sources };
 }
@@ -2312,7 +2400,7 @@ const STT = {
           // Safari requires HTTPS for STT on non-localhost
           const isHttp = location.protocol === 'http:' && !location.hostname.includes('localhost');
           if (isHttp) {
-            const httpsUrl = location.href.replace('http://', 'https://').replace(':3000', ':3001');
+            const httpsUrl = getPreferredHttpsUrl(location.href);
             showToastWithAction(
               '⚠ STT needs HTTPS — tap to switch',
               'Switch to HTTPS',
@@ -2408,7 +2496,7 @@ const STT = {
           const isHttp = location.protocol === 'http:' && !location.hostname.includes('localhost');
           if (isHttp) {
             S.callActive = false;
-            const httpsUrl = location.href.replace('http://', 'https://').replace(':3000', ':3001');
+            const httpsUrl = getPreferredHttpsUrl(location.href);
             onError('network-needs-https:' + httpsUrl);
           }
           return;
@@ -3143,21 +3231,123 @@ async function runStudyAI() {
 // NAV & UI HELPERS
 // ══════════════════════════════════════════════════════════════════════════════
 const PAGE_TITLES = {
-  chat:'Chat Studio',call:'Voice Call',flashcards:'Flashcards',notes:'AI Notes',
+  dashboard:'Dashboard',chat:'Chat',call:'Voice Call',flashcards:'Flashcards',notes:'AI Notes',
   tasks:'Tasks',habits:'Habits',focus:'Focus Timer',budget:'Budget',study:'Study AI',
   journal:'Journal',calc:'Calculator',weather:'Weather',passwords:'Passwords',shopping:'Shopping List',
-  centre:'The Centre',business:'Business Hub',agent:'Nexus Agent',terminal:'PC Terminal',browser:'Browser',aiwriter:'AI Writer',aicode:'Code AI',aiimage:'Image Prompts',aichat2:'Multi-AI Chat',aivision:'Vision AI',aisummarize:'Summarizer',aibrainstorm:'Brainstorm',aidebate:'Debate',osint:'OSINT Intel',coderun:'Code Runner',sysmon:'System Monitor',translator:'Translator',recipes:'Recipes AI',fitness:'Fitness',news:'News',settings:'Settings'
+  centre:'Command Center',business:'Business Hub',agent:'Autonomous Agent',terminal:'PC Terminal',browser:'Web Workspace',aiwriter:'AI Writer',aicode:'Code AI',aiimage:'Image Prompts',aichat2:'Multi-AI Chat',aivision:'Vision AI',aisummarize:'Summarizer',aibrainstorm:'Brainstorm',aidebate:'Debate',osint:'OSINT Intel',coderun:'Code Runner',sysmon:'System Monitor',translator:'Translator',recipes:'Recipes AI',fitness:'Fitness',news:'News',settings:'Settings',
+  aitools:'AI Tools Hub',agents:'Agent Swarm',code:'Nexus Code',media:'Media Studio',models:'Model Manager',trainer:'Model Trainer',aimaker:'AI Maker',mesh:'NexusMesh 3D',youtube:'YouTube Center',osbuilder:'OS Builder',doomcase:'Doomcase OS',kali:'Kali VM',claw:'NexusClaw',smarthome:'Smart Home',biosuit:'BioSuit Monitor',jarvis:'Jarvis Table AI',droneref:'Drone Gesture Ref',dev:'Dev Center',admin:'Admin Center'
 };
+
+const MOBILE_PAGE_FALLBACKS = {
+  dashboard: { blurb: 'Use Command Center and Business Hub on mobile while the full dashboard grid is tuned for iOS.', suggestions: ['centre', 'business', 'chat'] },
+  aitools: { blurb: 'AI Tools Hub is split into mobile-ready tools. Open one below to continue in this app.', suggestions: ['aiwriter', 'aicode', 'aichat2'] },
+  agents: { blurb: 'Agent Swarm desktop orchestration is being adapted for touch-first flow.', suggestions: ['agent', 'chat', 'centre'] },
+  code: { blurb: 'Nexus Code desktop workspace is not redirected on mobile anymore. Use mobile coding tools instead.', suggestions: ['aicode', 'coderun', 'terminal'] },
+  media: { blurb: 'Media Studio desktop layout is being rebuilt for iPhone/iPad.', suggestions: ['aiimage', 'aivision', 'browser'] },
+  models: { blurb: 'Model Manager desktop panel is being optimized for phone controls.', suggestions: ['centre', 'settings', 'chat'] },
+  trainer: { blurb: 'Model Trainer is being adapted for mobile sessions and progress views.', suggestions: ['study', 'flashcards', 'notes'] },
+  aimaker: { blurb: 'AI Maker desktop canvas is being converted to a compact mobile workflow.', suggestions: ['aibrainstorm', 'aiwriter', 'aicode'] },
+  mesh: { blurb: 'NexusMesh 3D needs a touch-friendly viewer. Use these mobile tools meanwhile.', suggestions: ['browser', 'aivision', 'chat'] },
+  youtube: { blurb: 'YouTube Center desktop board is being simplified for mobile.', suggestions: ['browser', 'news', 'chat'] },
+  osbuilder: { blurb: 'OS Builder desktop controls are being prepared for mobile-safe editing.', suggestions: ['terminal', 'coderun', 'settings'] },
+  doomcase: { blurb: 'Doomcase OS controls are being adapted for phone layout.', suggestions: ['terminal', 'coderun', 'settings'] },
+  kali: { blurb: 'Kali VM remote desktop controls are being optimized for iOS gestures.', suggestions: ['terminal', 'sysmon', 'osint'] },
+  claw: { blurb: 'NexusClaw control panel is being made touch-friendly.', suggestions: ['agent', 'osint', 'settings'] },
+  smarthome: { blurb: 'Smart Home dashboard is being rebuilt for mobile cards and quick toggles.', suggestions: ['settings', 'sysmon', 'chat'] },
+  biosuit: { blurb: 'BioSuit monitoring widgets are being tuned for mobile telemetry cards.', suggestions: ['fitness', 'sysmon', 'settings'] },
+  jarvis: { blurb: 'Jarvis Table AI workstation is being optimized for phone-size controls.', suggestions: ['centre', 'agent', 'chat'] },
+  droneref: { blurb: 'Drone Gesture Ref desktop panel is being adapted for mobile.', suggestions: ['aivision', 'osint', 'chat'] },
+  dev: { blurb: 'Dev Center desktop toolkit is being condensed into mobile workflows.', suggestions: ['coderun', 'terminal', 'aicode'] },
+  admin: { blurb: 'Admin Center is available in a safer compact flow on mobile.', suggestions: ['settings', 'sysmon', 'agent'] }
+};
+
+function getAvailableMobilePage(candidates, fallback = 'chat') {
+  const ids = Array.isArray(candidates) ? candidates : [];
+  for (const id of ids) {
+    if (document.getElementById('page-' + id)) return id;
+  }
+  if (document.getElementById('page-' + fallback)) return fallback;
+  return 'chat';
+}
+
+function renderMobileFallback(page) {
+  const shell = document.getElementById('page-mobile-module');
+  if (!shell) return null;
+
+  const title = PAGE_TITLES[page] || page;
+  const cfg = MOBILE_PAGE_FALLBACKS[page] || {};
+  const blurb = cfg.blurb || (title + ' is being optimized for iPhone/iPad layout.');
+  const preferred = Array.isArray(cfg.suggestions) && cfg.suggestions.length ? cfg.suggestions : ['chat', 'centre', 'settings'];
+
+  const picks = [];
+  preferred.forEach((id) => {
+    if (!picks.includes(id) && document.getElementById('page-' + id)) picks.push(id);
+  });
+  ['chat', 'centre', 'settings'].forEach((id) => {
+    if (!picks.includes(id) && document.getElementById('page-' + id)) picks.push(id);
+  });
+
+  const titleEl = document.getElementById('mobile-module-title');
+  const bodyEl = document.getElementById('mobile-module-body');
+  const stateEl = document.getElementById('mobile-module-state');
+  const pillsEl = document.getElementById('mobile-module-pills');
+  const primaryBtn = document.getElementById('mobile-module-primary');
+  const secondaryBtn = document.getElementById('mobile-module-secondary');
+
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.textContent = blurb;
+  if (stateEl) stateEl.textContent = 'Mobile-safe mode active';
+
+  if (pillsEl) {
+    pillsEl.innerHTML = '';
+    picks.slice(0, 3).forEach((id) => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.textContent = PAGE_TITLES[id] || id;
+      btn.onclick = () => navTo(id);
+      pillsEl.appendChild(btn);
+    });
+  }
+
+  const primary = getAvailableMobilePage(picks, 'chat');
+  const secondary = getAvailableMobilePage(picks.filter((id) => id !== primary), 'settings');
+
+  if (primaryBtn) {
+    primaryBtn.textContent = 'Open ' + (PAGE_TITLES[primary] || primary);
+    primaryBtn.onclick = () => navTo(primary);
+  }
+  if (secondaryBtn) {
+    secondaryBtn.textContent = 'Open ' + (PAGE_TITLES[secondary] || secondary);
+    secondaryBtn.onclick = () => navTo(secondary);
+  }
+
+  return shell;
+}
 
 function navTo(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  const p = document.getElementById('page-'+page);
-  if (p) p.classList.add('active');
   const nb = document.querySelector('[data-page="'+page+'"]');
   if (nb) nb.classList.add('active');
-  document.getElementById('page-title').textContent = PAGE_TITLES[page]||page;
+  const pageTitle = PAGE_TITLES[page] || page;
+  document.getElementById('page-title').textContent = pageTitle;
+
+  let p = document.getElementById('page-' + page);
+  const usingFallback = !p;
+  if (!p) p = renderMobileFallback(page);
+  if (!p) {
+    showToast(pageTitle + ' is not available right now.');
+    closeSidebar();
+    return;
+  }
+  p.classList.add('active');
   closeSidebar();
+
+  if (usingFallback) {
+    showToast(pageTitle + ' opened in mobile-safe mode');
+    return;
+  }
+
   // Per-page init
   if (page==='journal')  renderJournalList();
   if (page==='shopping') renderShopping();
@@ -3470,8 +3660,7 @@ TOOL CALL FORMAT (required every time you use a tool):
 <params>{"param": "value"}</params>
 
 AVAILABLE TOOLS:
-${Object.entries(AGENT_TOOLS).map(([k,v]) => `• ${k}: ${v.desc}`).join('
-')}
+${Object.entries(AGENT_TOOLS).map(([k,v]) => `• ${k}: ${v.desc}`).join('\n')}
 
 RULES:
 1. Think briefly first (1-2 sentences), then call ONE tool
@@ -3602,10 +3791,8 @@ print('Open ports on',host+':',open_ or 'none')
       agentLog('think', `✨ ${params.targetFile} has been updated!`);
     }
     else if (toolName === 'diff_self') {
-      const orig = (params.original || '').split('
-');
-      const impr = (params.improved || '').split('
-');
+      const orig = (params.original || '').split('\n');
+      const impr = (params.improved || '').split('\n');
       const added = impr.length - orig.length;
       result = `Original: ${orig.length} lines
 Improved: ${impr.length} lines
@@ -3645,8 +3832,7 @@ p=P(); p.feed(urllib.request.urlopen('${params.url}').read().decode('utf-8','rep
     }
 
     const display = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-    agentLog('result', display.slice(0, 2000) + (display.length > 2000 ? '
-…[truncated]' : ''));
+    agentLog('result', display.slice(0, 2000) + (display.length > 2000 ? '\n…[truncated]' : ''));
     return { result: display };
   } catch(e) {
     agentLog('error', 'Tool error: ' + e.message);
@@ -3700,9 +3886,7 @@ async function runAgent() {
     try {
       const histText = agentHistory.slice(-12).map(m =>
         m.role === 'user' ? 'User/Tool: ' + m.content : 'Agent: ' + m.content
-      ).join('
-
-');
+      ).join('\n\n');
 
       const response = await askAI(histText, AGENT_SYSTEM, model);
       agentHistory.push({ role: 'assistant', content: response });
@@ -3719,8 +3903,7 @@ async function runAgent() {
       const { done, summary, result, error } = await callAgentTool(toolCall.toolName, toolCall.params);
       if (done) { agentLog('done', summary || 'Task complete'); break; }
 
-      const resultMsg = error ? '[TOOL ERROR] ' + error : '[TOOL RESULT]
-' + result;
+      const resultMsg = error ? '[TOOL ERROR] ' + error : '[TOOL RESULT]\n' + result;
       agentHistory.push({ role: 'user', content: resultMsg });
     } catch(e) {
       agentLog('error', 'Agent error: ' + e.message);
@@ -3731,19 +3914,13 @@ async function runAgent() {
   if (steps >= MAX_STEPS) agentLog('error', 'Max steps reached');
   agentRunning = false;
   document.getElementById('agent-btn').textContent = '▶';
-  document.getElementById('agent-status-label').textContent = 'Thinks, writes code, runs it on your PC, loops until done';
+  document.getElementById('agent-status-label').textContent = 'Plans, writes code, and runs tasks on your PC end-to-end';
 }
 
 function agentQuick(task) {
   const inp = document.getElementById('agent-in');
   if (inp) inp.value = task;
   // Switch to agent page first if not there
-  runAgent();
-}
-
-function clearAgent() {
-
-  document.getElementById('agent-in').value = task;
   runAgent();
 }
 
@@ -4137,9 +4314,7 @@ async function centreAsk(forceSpecialist) {
     const result = await askAI(task, sys, modelKey);
     const resultTxt = typeof result==='string'?result:result.text;
     out.textContent = result;
-    if (spec) out.textContent = spec.emoji + ' ' + spec.name + ':
-
-' + result;
+    if (spec) out.textContent = spec.emoji + ' ' + spec.name + ':\n\n' + result;
   } catch(e) {
     out.textContent = '⚠ ' + e.message;
   }
@@ -4169,11 +4344,8 @@ async function selfImproveFile() {
     if (!r.ok) throw new Error('Cannot read file — is NexusAI running?');
     const { content: fileContent } = await r.json();
 
-    log.textContent += '
-✅ Read ' + fileContent.split('
-').length + ' lines';
-    log.textContent += '
-🧠 AI analyzing and improving…';
+    log.textContent += '\n✅ Read ' + fileContent.split('\n').length + ' lines';
+    log.textContent += '\n🧠 AI analyzing and improving…';
 
     const userInstruction = instruction || 'Review this file and make 2-3 meaningful improvements. Fix bugs, improve UX, add useful features, or clean up code. Be specific and impactful.';
 
@@ -4182,10 +4354,8 @@ async function selfImproveFile() {
 FILE: ${target}
 INSTRUCTION: ${userInstruction}
 
-CURRENT CONTENT (${fileContent.split('
-').length} lines):
-${fileContent.slice(0, 15000)}${fileContent.length > 15000 ? '
-... [truncated, continue from context]' : ''}
+CURRENT CONTENT (${fileContent.split('\n').length} lines):
+${fileContent.slice(0, 15000)}${fileContent.length > 15000 ? '\n... [truncated, continue from context]' : ''}
 
 Your task:
 1. Analyze the current code
@@ -4210,15 +4380,12 @@ Return ONLY the complete file content, no explanation, no markdown fences.`;
     });
     if (!w.ok) throw new Error('Failed to write file');
 
-    log.textContent += '
-✅ Done! ' + target + ' has been improved.';
-    log.textContent += '
-🔄 Refresh the app to see changes.';
+    log.textContent += '\n✅ Done! ' + target + ' has been improved.';
+    log.textContent += '\n🔄 Refresh the app to see changes.';
     showToast('✅ ' + target + ' improved!');
 
   } catch(e) {
-    log.textContent += '
-❌ Error: ' + e.message;
+    log.textContent += '\n❌ Error: ' + e.message;
     showToast('⚠ ' + e.message);
   }
 }
@@ -4324,8 +4491,7 @@ async function loadCentreStats() {
         'OS: ' + (d.platform || '?'),
         'Node: ' + (d.nodeVersion || '?'),
         'Dir: ' + (d.cwd || '?').slice(-50),
-      ].join('
-');
+      ].join('\n');
     }
   } catch {}
 }
@@ -4394,8 +4560,7 @@ async function loadServerInfo() {
     }
     if (lines.length > 0) {
       panel.style.display = 'block';
-      panel.textContent = lines.join('
-');
+      panel.textContent = lines.join('\n');
     }
   } catch {}
 }
@@ -4485,6 +4650,8 @@ window.loadSettingsUI = function() {
   if (S.pcConnected) {
     loadServerInfo();
   }
+  const typeEl = document.getElementById('s-conn-type');
+  if (typeEl) typeEl.value = 'manual';
 };
 
 // Port + connection type handlers — live update the URL field
@@ -4497,7 +4664,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const port = portEl.value.trim() || '3000';
     const connType = typeEl?.value || 'lan';
     if (connType === 'lan') {
-      // Auto-detect LAN IP from page origin
+      // Auto-use the current app origin
       const origin = window.location.origin;
       if (!origin.includes('localhost') && !origin.includes('127.0.0.1')) {
         try {
@@ -4531,10 +4698,14 @@ document.addEventListener('DOMContentLoaded', () => {
           urlEl.value = url.toString().replace(/\/$/, '');
         } catch {}
       } else {
-        // Build from LAN auto-detect
-        urlEl.value = 'http://192.168.1.84:' + port;
+        // Build localhost fallback
+        urlEl.value = 'http://127.0.0.1:' + port;
       }
     });
+  }
+  const typeEl = document.getElementById('s-conn-type');
+  if (typeEl) {
+    typeEl.addEventListener('change', rebuildUrl);
   }
 });
 
@@ -4961,10 +5132,8 @@ async function runCodeNow() {
       await pcFileOp('write_file', { filePath: 'nexus_run.js', content: c });
       return execOnPc('node nexus_run.js', undefined, 15000);
     },
-    bash: async (c) => execOnPc(c.split('
-')[0], undefined, 10000),
-    powershell: async (c) => execOnPc(`powershell -Command "${c.replace(/"/g,"'").replace(/
-/g,';')}"`, undefined, 10000),
+    bash: async (c) => execOnPc(c.split('\n')[0], undefined, 10000),
+    powershell: async (c) => execOnPc(`powershell -Command "${c.replace(/"/g,"'").replace(/\r?\n/g,';')}"`, undefined, 10000),
   };
 
   try {
@@ -4990,8 +5159,7 @@ async function aiGenerateCode() {
       `You are an expert ${langNames[codeLang] || codeLang} developer. Write clean, runnable code only.`,
       S.selectedModel
     );
-    const clean = result.replace(/```[\w]*
-?/g,'').replace(/```/g,'').trim();
+    const clean = result.replace(/```[\w]*\r?\n?/g,'').replace(/```/g,'').trim();
     document.getElementById('code-editor').value = clean;
     showToast('✓ Code generated — tap ▶ Run');
   } catch(e) {
@@ -5516,41 +5684,41 @@ async function aiOsintAnalyze(q, mode) {
 async function startTunnel() {
   const btn = document.getElementById('tunnel-start-btn');
   const status = document.getElementById('tunnel-status');
-  btn.textContent = '⏳ Starting…';
+  btn.textContent = '⏳ Checking…';
   btn.disabled = true;
   status.style.display = 'block';
-  status.textContent = 'Starting Cloudflare Tunnel… (up to 20 seconds)';
-  const base = S.pcUrl || window.location.origin;
+  status.textContent = 'Checking Cloudflare access…';
+  const base = getEffectiveServerBase();
+  const publicUrl = 'https://nexusais.app';
   const headers = { 'Content-Type': 'application/json' };
   if (S.pcToken) headers['x-nexus-token'] = S.pcToken;
   try {
-    const r = await fetch(`${base}/api/tunnel/start`, { method: 'POST', headers, signal: AbortSignal.timeout(25000) });
-    const d = await r.json();
-    if (d.ok && d.url) {
-      status.innerHTML = `✅ Tunnel active!<br><a href="${d.url}" target="_blank" style="color:var(--indigo)">${d.url}</a><br><br>Share this URL to access NexusAI from anywhere.<br>It changes each restart.`;
+    const [publicResult, localResult] = await Promise.allSettled([
+      fetch(`${publicUrl}/api/health`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${base}/api/health`, { headers, signal: AbortSignal.timeout(8000) })
+    ]);
+    const publicOk = publicResult.status === 'fulfilled' && publicResult.value.ok;
+    const localOk = localResult.status === 'fulfilled' && localResult.value.ok;
+    if (publicOk) {
+      status.innerHTML = `✅ Cloudflare is live.<br><a href="${publicUrl}" target="_blank" style="color:var(--indigo)">${publicUrl}</a><br><br>Remote access is active and always-on.`;
       status.style.color = 'var(--green)';
     } else {
-      status.textContent = '⚠ ' + (d.error || 'Failed to start tunnel');
+      status.innerHTML = `⚠ Cloudflare URL not reachable right now.<br><span style="font-family:monospace;color:var(--muted2)">sc query cloudflared-nexusai</span><br><span style="font-family:monospace;color:var(--muted2)">sc start cloudflared-nexusai</span><br><br>Local server: ${localOk ? '✅ reachable' : '❌ unreachable'}`;
       status.style.color = 'var(--red)';
     }
   } catch(e) {
-    status.textContent = '⚠ ' + e.message + '\n\nMake sure cloudflared is installed: winget install Cloudflare.cloudflared';
+    status.textContent = '⚠ ' + e.message + '\n\nRun "sc query cloudflared-nexusai" on your PC.';
     status.style.color = 'var(--red)';
   }
-  btn.textContent = '🌐 Start Tunnel';
+  btn.textContent = '🌐 Check Tunnel';
   btn.disabled = false;
 }
 
 async function stopTunnel() {
   const status = document.getElementById('tunnel-status');
-  const base = S.pcUrl || window.location.origin;
-  const headers = { 'Content-Type': 'application/json' };
-  if (S.pcToken) headers['x-nexus-token'] = S.pcToken;
-  try {
-    await fetch(`${base}/api/tunnel/stop`, { method: 'POST', headers });
-    status.textContent = 'Tunnel stopped.';
-    status.style.color = 'var(--muted)';
-  } catch(e) { showToast('⚠ ' + e.message); }
+  status.style.display = 'block';
+  status.style.color = 'var(--muted2)';
+  status.innerHTML = `ℹ Always-on mode uses Windows service <span style="font-family:monospace">cloudflared-nexusai</span>.<br>To stop it on PC:<br><span style="font-family:monospace;color:#f87171">sc stop cloudflared-nexusai</span>`;
 }
 
 // Auto-check tunnel status when opening settings
@@ -5630,9 +5798,7 @@ async function generateImagePrompt() {
   try {
     const r = await askAI(
       `Create a detailed, optimized image generation prompt for ${ai}.
-Concept: ${concept}${style ? '
-Style: '+style : ''}${mood ? '
-Mood: '+mood : ''}
+Concept: ${concept}${style ? '\nStyle: '+style : ''}${mood ? '\nMood: '+mood : ''}
 
 Return ONLY the prompt text, no explanation. Include: composition, lighting, colors, technical quality tags (masterpiece, 8k, detailed), camera settings if applicable.`,
       'You are an expert at writing image generation prompts. Create prompts that produce stunning, detailed images.',
@@ -5824,10 +5990,7 @@ Provide strong, well-reasoned arguments ${sideMap[side]}. Use evidence, logic, a
 }
 
 function switchToHttps() {
-  const httpsUrl = location.href
-    .replace('http://', 'https://')
-    .replace(':3000', ':3001')
-    .replace(':3000/', ':3001/');
+  const httpsUrl = getPreferredHttpsUrl(location.href);
   window.location.href = httpsUrl;
 }
 
@@ -6153,9 +6316,7 @@ async function startReceptionist() {
       addLog('Caller', text);
       status.textContent = '🤔 Processing…';
       try {
-        const r = await askAI(text, behavior + '
-
-Be concise, 1-3 sentences max.', S.selectedModel);
+        const r = await askAI(text, behavior + '\n\nBe concise, 1-3 sentences max.', S.selectedModel);
         if (!recActive) return;
         addLog('AI', r);
         status.textContent = '🔊 Speaking…';

@@ -95,9 +95,9 @@ html, body, #root {
 /* ── Mobile / iPhone fixes ─────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   input, textarea, select { font-size: max(16px, 1em) !important; }
-  html, body, #root { height: 100%; height: -webkit-fill-available; overflow: hidden; }
+  html, body, #root { height: 100%; height: -webkit-fill-available; width: 100%; max-width: 100vw; overflow-x: hidden; overflow-y: hidden; }
   * { -webkit-overflow-scrolling: touch; }
-  body { overscroll-behavior: none; }
+  body { overscroll-behavior: none; margin: 0; }
   .desktop-only { display: none !important; }
   button, a, [role="button"] { min-height: 44px; min-width: 44px; }
 }
@@ -163,9 +163,9 @@ html, body, #root {
 /* ── Mobile / iPhone fixes ─────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   input, textarea, select { font-size: max(16px, 1em) !important; }
-  html, body, #root { height: 100%; height: -webkit-fill-available; overflow: hidden; }
+  html, body, #root { height: 100%; height: -webkit-fill-available; width: 100%; max-width: 100vw; overflow-x: hidden; overflow-y: hidden; }
   * { -webkit-overflow-scrolling: touch; }
-  body { overscroll-behavior: none; }
+  body { overscroll-behavior: none; margin: 0; }
   .desktop-only { display: none !important; }
   button, a, [role="button"] { min-height: 44px; min-width: 44px; }
 }

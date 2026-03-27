@@ -14,7 +14,7 @@ import NexusCentre from './pages/NexusCentre';
 // Lazily loaded (only bundled when first visited) 
 // This massively speeds up initial load on slow laptops
 const MediaStudio  = lazy(() => import('./pages/MediaStudio'));
-const LLMLibrary   = lazy(() => import('./pages/LLMLibrary'));
+const ModelManager = lazy(() => import('./pages/ModelManager'));
 const ModelTrainer = lazy(() => import('./pages/ModelTrainer'));
 const Agents       = lazy(() => import('./pages/Agents'));
 const NexusCode    = lazy(() => import('./pages/NexusCode'));
@@ -100,6 +100,7 @@ const MOBILE_TABS = [
 ];
 
 export default function App() {
+  const PUBLIC_WEB_URL = 'https://nexusais.app';
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [authed, setAuthed] = useState(() => {
@@ -136,8 +137,9 @@ export default function App() {
       case 'dashboard':  return <Dashboard />;
       case 'chat':       return <Chat />;
       case 'media':      return <MediaStudio />;
-      case 'models':     return <LLMLibrary />;
-      case 'llmlibrary': return <LLMLibrary />;      case 'trainer':    return <ModelTrainer />;
+      case 'models':     return <ModelManager />;
+      case 'llmlibrary': return <ModelManager />;
+      case 'trainer':    return <ModelTrainer />;
       case 'agents':     return <Agents />;
       case 'code':       return <NexusCode />;
       case 'kali':       return <KaliVM />;
@@ -234,7 +236,7 @@ export default function App() {
                 <div style={{position:'absolute',bottom:0,left:0,right:0,background:'#0f0f1a',borderTop:'1px solid rgba(255,255,255,0.1)', borderRadius:'20px 20px 0 0',padding:'12px 0 calc(24px + env(safe-area-inset-bottom))', maxHeight:'70vh',overflowY:'auto'}} onClick={e => e.stopPropagation()}>
                   <div style={{width:'36px',height:'4px',borderRadius:'2px',background:'rgba(255,255,255,0.15)',margin:'0 auto 16px'}}/>
                   {[
-                    { id:'models',    label:'LLM Library',       emoji:'📚' },
+                    { id:'models',    label:'Model Manager',     emoji:'📚' },
                     { id:'trainer',   label:'AI Model Trainer',  emoji:'🧠' },
                     { id:'agents',    label:'AI Agents',         emoji:'⚡' },
                     { id:'youtube',   label:'YouTube Center',    emoji:'🎬' },
@@ -277,7 +279,7 @@ export default function App() {
                 <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
                   <span className="text-2xl">📱</span> Connect from Phone
                 </h3>
-                <p className="text-xs text-slate-400 mb-5">Open NexusAI on any device on your WiFi network</p>
+                    <p className="text-xs text-slate-400 mb-5">Use local WiFi or your public domain</p>
 
                 {networkInfo ? (
                   <>
@@ -294,6 +296,24 @@ export default function App() {
                     <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-center mb-4">
                       <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Phone App URL</p>
                       <p className="text-lg font-mono font-bold text-indigo-400">{networkInfo.primaryUrl}/app</p>
+                    </div>
+                    <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 text-center mb-4">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">Public URL (Cloudflare)</p>
+                      <p className="text-sm font-mono font-bold text-indigo-300">{PUBLIC_WEB_URL}</p>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => navigator.clipboard?.writeText(PUBLIC_WEB_URL).catch(() => {})}
+                          className="flex-1 px-3 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10"
+                        >
+                          Copy
+                        </button>
+                        <button
+                          onClick={() => window.open(PUBLIC_WEB_URL, '_blank')}
+                          className="flex-1 px-3 py-2 text-xs rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 hover:bg-indigo-500/30"
+                        >
+                          Open
+                        </button>
+                      </div>
                     </div>
                     {networkInfo.localIps.length > 1 && (
                       <div className="space-y-1 mb-4">
@@ -364,3 +384,4 @@ export default function App() {
     </SettingsProvider>
   );
 }
+

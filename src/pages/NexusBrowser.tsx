@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, ArrowRight, ExternalLink, Globe, Home, RefreshCw, Shield, ShieldOff, Star, Bookmark, X, Plus, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ExternalLink, Home, RefreshCw, Shield, ShieldOff, Star, X, Plus, Search } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
+import { openLink } from '@/src/lib/openLink';
 
 const HOME_URL = 'https://duckduckgo.com';
 const SEARCH_ENGINES: Record<string, string> = {
@@ -10,7 +11,6 @@ const SEARCH_ENGINES: Record<string, string> = {
   brave: 'https://search.brave.com/search?q=',
 };
 
-// Quick access bookmarks
 const DEFAULT_BOOKMARKS = [
   { name: 'DuckDuckGo', url: 'https://duckduckgo.com', icon: '🦆' },
   { name: 'GitHub', url: 'https://github.com', icon: '🐙' },
@@ -22,144 +22,304 @@ const DEFAULT_BOOKMARKS = [
   { name: 'Ollama', url: 'https://ollama.com', icon: '🦙' },
 ];
 
-function normalizeUrl(input: string, searchEngine: string = 'duckduckgo'): string {
+type Tab = {
+  id: string;
+  url: string;
+  title: string;
+  loading: boolean;
+  error: string;
+};
+
+type BrowserHost = (HTMLIFrameElement & {
+  loadURL?: (url: string) => void;
+  canGoBack?: () => boolean;
+  canGoForward?: () => boolean;
+  goBack?: () => void;
+  goForward?: () => void;
+  getURL?: () => string;
+  addEventListener?: (type: string, listener: (event: any) => void) => void;
+  removeEventListener?: (type: string, listener: (event: any) => void) => void;
+}) | null;
+
+function isElectronRuntime(): boolean {
+  return typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+}
+
+function normalizeUrl(input: string, searchEngine = 'duckduckgo'): string {
   const raw = input.trim();
   if (!raw) return HOME_URL;
   if (/^https?:\/\//i.test(raw)) return raw;
   if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(raw)) return `https://${raw}`;
-  // Search query
   return `${SEARCH_ENGINES[searchEngine] || SEARCH_ENGINES.duckduckgo}${encodeURIComponent(raw)}`;
 }
 
 function getHostname(url: string): string {
-  try { return new URL(url).hostname; } catch { return ''; }
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return '';
+  }
 }
 
 export default function NexusBrowser() {
-  // Tab system
-  interface Tab { id: string; url: string; title: string; loading: boolean; error: string; }
   const [tabs, setTabs] = useState<Tab[]>([{ id: '1', url: HOME_URL, title: 'New Tab', loading: false, error: '' }]);
   const [activeTab, setActiveTab] = useState('1');
   const [inputUrl, setInputUrl] = useState(HOME_URL);
   const [searchEngine, setSearchEngine] = useState(() => localStorage.getItem('nexus_browser_search') || 'duckduckgo');
-  const [proxyMode, setProxyMode] = useState(true); // Use proxy by default for CORS bypass
+  const [isElectron, setIsElectron] = useState(() => isElectronRuntime());
+  const [proxyMode, setProxyMode] = useState(() => !isElectronRuntime());
   const [bookmarks, setBookmarks] = useState<typeof DEFAULT_BOOKMARKS>(() => {
-    try { return JSON.parse(localStorage.getItem('nexus_browser_bookmarks') || 'null') || DEFAULT_BOOKMARKS; } catch { return DEFAULT_BOOKMARKS; }
+    try {
+      return JSON.parse(localStorage.getItem('nexus_browser_bookmarks') || 'null') || DEFAULT_BOOKMARKS;
+    } catch {
+      return DEFAULT_BOOKMARKS;
+    }
   });
-  const [showBookmarks, setShowBookmarks] = useState(false);
-  
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const tabCounter = useRef(1);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [canGoForward, setCanGoForward] = useState(false);
 
-  const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
+  const viewRef = useRef<BrowserHost>(null);
+  const tabCounter = useRef(1);
+  const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
   const safeUrl = useMemo(() => normalizeUrl(currentTab?.url || HOME_URL, searchEngine), [currentTab?.url, searchEngine]);
 
-  // Persist settings
-  useEffect(() => { localStorage.setItem('nexus_browser_search', searchEngine); }, [searchEngine]);
-  useEffect(() => { localStorage.setItem('nexus_browser_bookmarks', JSON.stringify(bookmarks)); }, [bookmarks]);
+  useEffect(() => {
+    setIsElectron(isElectronRuntime());
+  }, []);
 
-  // Load page content
+  useEffect(() => {
+    localStorage.setItem('nexus_browser_search', searchEngine);
+  }, [searchEngine]);
+
+  useEffect(() => {
+    localStorage.setItem('nexus_browser_bookmarks', JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  useEffect(() => {
+    if (isElectron) setProxyMode(false);
+  }, [isElectron]);
+
+  const patchTab = useCallback((tabId: string, patch: Partial<Tab>) => {
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? { ...t, ...patch } : t)));
+  }, []);
+
+  const refreshNavButtons = useCallback(() => {
+    if (!isElectron) {
+      setCanGoBack(false);
+      setCanGoForward(false);
+      return;
+    }
+    const host = viewRef.current;
+    if (!host) return;
+    setCanGoBack(Boolean(host.canGoBack?.()));
+    setCanGoForward(Boolean(host.canGoForward?.()));
+  }, [isElectron]);
+
   const loadPage = useCallback(async (url: string, tabId: string) => {
-    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, loading: true, error: '' } : t));
-    
+    if (!url || url === 'about:blank') return;
+    patchTab(tabId, { loading: true, error: '', url });
+
+    if (isElectron) {
+      const host = viewRef.current;
+      if (host && tabId === activeTab) {
+        try {
+          if (typeof host.loadURL === 'function') host.loadURL(url);
+          else host.src = url;
+        } catch {
+          host.src = url;
+        }
+      }
+      patchTab(tabId, { title: getHostname(url) || 'Page', loading: false });
+      return;
+    }
+
+    const frame = viewRef.current as HTMLIFrameElement | null;
+    if (!frame || tabId !== activeTab) return;
+
     try {
       if (proxyMode) {
-        // Use server proxy to bypass CORS
-        const r = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(20000) });
-        if (!r.ok) throw new Error(`Failed: ${r.status} ${r.statusText}`);
-        const ct = r.headers.get('content-type') || '';
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeout));
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const contentType = response.headers.get('content-type') || '';
         const title = getHostname(url) || 'Page';
-        
-        if (ct.includes('text/html')) {
-          let html = await r.text();
-          // Extract title from HTML
+        if (contentType.includes('text/html')) {
+          const html = await response.text();
           const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-          const pageTitle = titleMatch ? titleMatch[1].trim() : title;
-          
-          if (iframeRef.current && tabId === activeTab) {
-            iframeRef.current.srcdoc = html;
-          }
-          setTabs(prev => prev.map(t => t.id === tabId ? { ...t, title: pageTitle, loading: false } : t));
+          const pageTitle = titleMatch ? titleMatch[1].trim().slice(0, 64) : title;
+          frame.srcdoc = html;
+          patchTab(tabId, { title: pageTitle, loading: false });
         } else {
-          // Binary content - load directly
-          if (iframeRef.current && tabId === activeTab) {
-            iframeRef.current.src = `/api/proxy?url=${encodeURIComponent(url)}`;
-          }
-          setTabs(prev => prev.map(t => t.id === tabId ? { ...t, title, loading: false } : t));
+          frame.src = `/api/proxy?url=${encodeURIComponent(url)}`;
+          patchTab(tabId, { title, loading: false });
         }
       } else {
-        // Direct load (may be blocked by CORS/X-Frame-Options)
-        if (iframeRef.current && tabId === activeTab) {
-          iframeRef.current.src = url;
-        }
-        setTabs(prev => prev.map(t => t.id === tabId ? { ...t, title: getHostname(url), loading: false } : t));
+        frame.src = url;
+        patchTab(tabId, { title: getHostname(url) || 'Page', loading: false });
       }
-    } catch (e: any) {
-      const msg = e?.message || String(e);
-      setTabs(prev => prev.map(t => t.id === tabId ? { ...t, loading: false, error: msg } : t));
+    } catch (error: any) {
+      const message = error?.name === 'AbortError' ? 'Request timed out' : (error?.message || 'Failed to load');
+      patchTab(tabId, { loading: false, error: message });
     }
-  }, [proxyMode, activeTab]);
+  }, [activeTab, isElectron, patchTab, proxyMode]);
 
-  // Navigate to URL
   const navigate = useCallback((raw: string) => {
     const url = normalizeUrl(raw, searchEngine);
-    setTabs(prev => prev.map(t => t.id === activeTab ? { ...t, url, error: '' } : t));
     setInputUrl(url);
+    patchTab(activeTab, { url, error: '' });
     loadPage(url, activeTab);
-  }, [activeTab, searchEngine, loadPage]);
+  }, [activeTab, loadPage, patchTab, searchEngine]);
 
-  // Reload on tab switch or URL change
   useEffect(() => {
-    if (currentTab) {
-      setInputUrl(currentTab.url);
-      loadPage(currentTab.url, currentTab.id);
-    }
+    if (!currentTab) return;
+    setInputUrl(currentTab.url);
+    loadPage(currentTab.url, currentTab.id);
   }, [activeTab]);
 
-  // Tab management
+  useEffect(() => {
+    if (!isElectron) return;
+    const host = viewRef.current;
+    if (!host?.addEventListener) return;
+
+    const onStart = () => patchTab(activeTab, { loading: true, error: '' });
+    const onStop = () => {
+      patchTab(activeTab, { loading: false });
+      try {
+        const currentUrl = host.getURL?.();
+        if (currentUrl) {
+          setInputUrl(currentUrl);
+          patchTab(activeTab, { url: currentUrl, title: getHostname(currentUrl) || 'Page' });
+        }
+      } catch {
+        // ignore
+      }
+      refreshNavButtons();
+    };
+    const onNavigate = (event: any) => {
+      const nextUrl = event?.url || host.getURL?.();
+      if (!nextUrl) return;
+      setInputUrl(nextUrl);
+      patchTab(activeTab, { url: nextUrl, title: getHostname(nextUrl) || 'Page', error: '' });
+      refreshNavButtons();
+    };
+    const onTitle = (event: any) => {
+      const title = String(event?.title || '').trim();
+      if (title) patchTab(activeTab, { title: title.slice(0, 80) });
+    };
+    const onFail = (event: any) => {
+      if (Number(event?.errorCode) === -3) return;
+      const code = event?.errorCode ?? 'ERR';
+      const desc = event?.errorDescription || 'Failed to load';
+      patchTab(activeTab, { loading: false, error: `${code}: ${desc}` });
+    };
+    const onNewWindow = (event: any) => {
+      const target = String(event?.url || '').trim();
+      if (target) openLink(target);
+    };
+
+    host.addEventListener('did-start-loading', onStart);
+    host.addEventListener('did-stop-loading', onStop);
+    host.addEventListener('did-navigate', onNavigate);
+    host.addEventListener('did-navigate-in-page', onNavigate);
+    host.addEventListener('page-title-updated', onTitle);
+    host.addEventListener('did-fail-load', onFail);
+    host.addEventListener('new-window', onNewWindow);
+
+    return () => {
+      host.removeEventListener?.('did-start-loading', onStart);
+      host.removeEventListener?.('did-stop-loading', onStop);
+      host.removeEventListener?.('did-navigate', onNavigate);
+      host.removeEventListener?.('did-navigate-in-page', onNavigate);
+      host.removeEventListener?.('page-title-updated', onTitle);
+      host.removeEventListener?.('did-fail-load', onFail);
+      host.removeEventListener?.('new-window', onNewWindow);
+    };
+  }, [activeTab, isElectron, patchTab, refreshNavButtons]);
+
   const newTab = () => {
-    tabCounter.current++;
+    tabCounter.current += 1;
     const id = String(tabCounter.current);
-    setTabs(prev => [...prev, { id, url: HOME_URL, title: 'New Tab', loading: false, error: '' }]);
+    setTabs((prev) => [...prev, { id, url: HOME_URL, title: 'New Tab', loading: false, error: '' }]);
     setActiveTab(id);
     setInputUrl(HOME_URL);
   };
 
   const closeTab = (id: string) => {
-    if (tabs.length === 1) return; // Keep at least one tab
-    const idx = tabs.findIndex(t => t.id === id);
-    setTabs(prev => prev.filter(t => t.id !== id));
+    if (tabs.length <= 1) return;
+    const idx = tabs.findIndex((t) => t.id === id);
+    const nextTabs = tabs.filter((t) => t.id !== id);
+    setTabs(nextTabs);
     if (activeTab === id) {
-      const newIdx = Math.max(0, idx - 1);
-      setActiveTab(tabs[newIdx === idx ? newIdx + 1 : newIdx]?.id || tabs[0]?.id);
+      const fallback = nextTabs[Math.max(0, idx - 1)] || nextTabs[0];
+      if (fallback) setActiveTab(fallback.id);
     }
   };
 
-  const refresh = () => loadPage(currentTab.url, currentTab.id);
-  const goHome = () => navigate(HOME_URL);
   const addBookmark = () => {
-    if (!bookmarks.some(b => b.url === currentTab.url)) {
-      setBookmarks([...bookmarks, { name: currentTab.title, url: currentTab.url, icon: '⭐' }]);
+    if (!currentTab?.url) return;
+    if (bookmarks.some((b) => b.url === currentTab.url)) return;
+    setBookmarks((prev) => [...prev, { name: currentTab.title || getHostname(currentTab.url) || 'Bookmark', url: currentTab.url, icon: '⭐' }]);
+  };
+
+  const goBack = () => {
+    const host = viewRef.current;
+    if (!host) return;
+    if (isElectron && host.canGoBack?.()) {
+      host.goBack?.();
+      return;
+    }
+    try {
+      (host as HTMLIFrameElement).contentWindow?.history.back();
+    } catch {
+      // ignore cross-origin
     }
   };
+
+  const goForward = () => {
+    const host = viewRef.current;
+    if (!host) return;
+    if (isElectron && host.canGoForward?.()) {
+      host.goForward?.();
+      return;
+    }
+    try {
+      (host as HTMLIFrameElement).contentWindow?.history.forward();
+    } catch {
+      // ignore cross-origin
+    }
+  };
+
+  const refresh = () => {
+    if (!currentTab) return;
+    loadPage(currentTab.url, currentTab.id);
+  };
+
+  const goHome = () => navigate(HOME_URL);
 
   return (
-    <div className="h-full flex flex-col bg-slate-950">
-      {/* Tab Bar */}
+    <div className="h-full flex flex-col bg-slate-950 min-w-0">
       <div className="flex items-center gap-1 px-2 py-1 bg-black/40 border-b border-white/5 overflow-x-auto">
-        {tabs.map(tab => (
+        {tabs.map((tab) => (
           <div
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer min-w-[120px] max-w-[200px] group',
+              'flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer min-w-[120px] max-w-[220px] group',
               activeTab === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800'
             )}
           >
             <span className="truncate flex-1">{tab.loading ? '⏳' : tab.error ? '⚠️' : '🌐'} {tab.title}</span>
             {tabs.length > 1 && (
               <button
-                onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeTab(tab.id);
+                }}
                 className="opacity-0 group-hover:opacity-100 hover:text-red-400"
               >
                 <X className="w-3 h-3" />
@@ -167,24 +327,29 @@ export default function NexusBrowser() {
             )}
           </div>
         ))}
-        <button onClick={newTab} className="p-1.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white">
+        <button onClick={newTab} className="p-1.5 rounded hover:bg-slate-800 text-slate-500 hover:text-white" title="New tab">
           <Plus className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Navigation Bar */}
       <div className="px-3 py-2 border-b border-white/5 bg-black/20">
         <div className="flex items-center gap-2">
+          <button onClick={goBack} disabled={isElectron && !canGoBack} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <button onClick={goForward} disabled={isElectron && !canGoForward} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-40">
+            <ArrowRight className="w-4 h-4" />
+          </button>
           <button onClick={goHome} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5">
-            <Home className="w-4 h-4"/>
+            <Home className="w-4 h-4" />
           </button>
           <button onClick={refresh} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5">
-            <RefreshCw className={cn('w-4 h-4', currentTab?.loading && 'animate-spin')}/>
+            <RefreshCw className={cn('w-4 h-4', currentTab?.loading && 'animate-spin')} />
           </button>
-          
-          <form className="flex-1" onSubmit={(e) => { e.preventDefault(); navigate(inputUrl); }}>
+
+          <form className="flex-1 min-w-0" onSubmit={(e) => { e.preventDefault(); navigate(inputUrl); }}>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600"/>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
               <input
                 value={inputUrl}
                 onChange={(e) => setInputUrl(e.target.value)}
@@ -194,7 +359,6 @@ export default function NexusBrowser() {
             </div>
           </form>
 
-          {/* Search engine selector */}
           <select
             value={searchEngine}
             onChange={(e) => setSearchEngine(e.target.value)}
@@ -206,28 +370,28 @@ export default function NexusBrowser() {
             <option value="brave">🦁 Brave</option>
           </select>
 
-          {/* Proxy toggle */}
           <button
-            onClick={() => setProxyMode(!proxyMode)}
-            className={cn('p-2 rounded-lg border text-xs', proxyMode ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-white/10 text-slate-400')}
-            title={proxyMode ? 'Proxy ON (bypasses CORS)' : 'Proxy OFF (direct load)'}
+            onClick={() => !isElectron && setProxyMode((v) => !v)}
+            disabled={isElectron}
+            className={cn(
+              'p-2 rounded-lg border text-xs disabled:opacity-50',
+              proxyMode ? 'border-green-500/30 text-green-400 bg-green-500/10' : 'border-white/10 text-slate-400'
+            )}
+            title={isElectron ? 'Electron uses direct webview mode' : (proxyMode ? 'Proxy ON (bypasses CORS)' : 'Proxy OFF (direct load)')}
           >
             {proxyMode ? <Shield className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />}
           </button>
 
-          {/* Bookmark current */}
           <button onClick={addBookmark} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/10">
             <Star className="w-4 h-4" />
           </button>
 
-          {/* Open external */}
-          <button onClick={() => window.open(safeUrl, '_blank')} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5" title="Open in system browser">
-            <ExternalLink className="w-4 h-4"/>
+          <button onClick={() => openLink(safeUrl)} className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:bg-white/5" title="Open in system browser">
+            <ExternalLink className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Bookmarks Bar */}
       <div className="px-3 py-1.5 border-b border-white/5 bg-black/10 flex items-center gap-2 overflow-x-auto">
         {bookmarks.map((b, i) => (
           <button
@@ -241,8 +405,7 @@ export default function NexusBrowser() {
         ))}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-w-0">
         {currentTab?.error ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-4 p-8">
             <div className="text-6xl">🚫</div>
@@ -252,21 +415,32 @@ export default function NexusBrowser() {
               <button onClick={refresh} className="px-4 py-2 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-sm hover:bg-indigo-600/30">
                 Try Again
               </button>
-              <button onClick={() => window.open(safeUrl, '_blank')} className="px-4 py-2 rounded-lg bg-slate-700/20 border border-white/10 text-slate-300 text-sm hover:bg-slate-700/30">
+              <button onClick={() => openLink(safeUrl)} className="px-4 py-2 rounded-lg bg-slate-700/20 border border-white/10 text-slate-300 text-sm hover:bg-slate-700/30">
                 Open External
               </button>
             </div>
           </div>
         ) : (
           <div className="absolute inset-0">
-            <iframe
-              ref={iframeRef}
-              title="Nexus Browser"
-              className="w-full h-full border-0 bg-white"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-              onLoad={() => setTabs(prev => prev.map(t => t.id === activeTab ? { ...t, loading: false } : t))}
-              onError={() => setTabs(prev => prev.map(t => t.id === activeTab ? { ...t, loading: false, error: 'Failed to load inside iframe' } : t))}
-            />
+            {isElectron
+              ? React.createElement('webview', {
+                  ref: (node: any) => { viewRef.current = node; },
+                  src: safeUrl,
+                  className: 'w-full h-full border-0 bg-white',
+                  allowpopups: 'true',
+                  partition: 'persist:nexus-browser',
+                  webpreferences: 'contextIsolation=yes,sandbox=yes,nativeWindowOpen=yes',
+                })
+              : (
+                <iframe
+                  ref={(node) => { viewRef.current = node as BrowserHost; }}
+                  title="Nexus Browser"
+                  className="w-full h-full border-0 bg-white"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                  onLoad={() => patchTab(activeTab, { loading: false, error: '' })}
+                  onError={() => patchTab(activeTab, { loading: false, error: 'Failed to load inside iframe' })}
+                />
+              )}
             {currentTab?.loading && (
               <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
@@ -281,4 +455,3 @@ export default function NexusBrowser() {
     </div>
   );
 }
-

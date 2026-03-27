@@ -19,6 +19,12 @@
   ],
   "icons": [
     {
+      "src": "/nexusai.ico",
+      "sizes": "256x256",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
       "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",

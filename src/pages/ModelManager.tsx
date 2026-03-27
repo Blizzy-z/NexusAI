@@ -548,24 +548,39 @@ const generateModels = (): EnhancedModel[] => {
     });
   });
   
-  // Add some community/misc models to reach 1000
-  const miscNames = ['TinyAgent', 'MicroLM', 'NanoGPT', 'PocketLLM', 'EdgeAI', 'MobileNet', 'TurboLM'];
-  for (let i = 0; i < 40; i++) {
-    const name = miscNames[i % miscNames.length];
-    const params = [50, 100, 250, 500][i % 4];
+  // Add community/misc models to reach EXACTLY 1000
+  // Current count varies, so we pad to exactly 1000
+  const currentCount = models.length;
+  const needed = 1000 - currentCount;
+  
+  const communityModels = [
+    'TinyAgent', 'MicroLM', 'NanoGPT', 'PocketLLM', 'EdgeAI', 'MobileNet', 'TurboLM',
+    'FastChat', 'LiteGPT', 'MiniAssist', 'CompactAI', 'SwiftLM', 'QuickBot', 'RapidAI',
+    'SlimModel', 'TinyChat', 'MicroBot', 'NanoAssist', 'PicoLM', 'AtomAI'
+  ];
+  const paramOptions = [25, 50, 100, 150, 200, 300, 400, 500, 750, 1000];
+  const quantOptions = ['INT4', 'INT8', 'FP16', 'Q4_K_S', 'Q5_K_M'];
+  
+  for (let i = 0; i < needed; i++) {
+    const name = communityModels[i % communityModels.length];
+    const params = paramOptions[i % paramOptions.length];
+    const quant = quantOptions[i % quantOptions.length];
+    const version = Math.floor(i / communityModels.length) + 1;
+    
     models.push({
-      id: `community:${name.toLowerCase()}-v${i + 1}`,
-      name: `${name} v${i + 1} (${params}M)`,
+      id: `community:${name.toLowerCase()}-v${version}-${i}`,
+      name: `${name} v${version} (${params >= 1000 ? (params/1000).toFixed(1) + 'B' : params + 'M'})`,
       provider: 'Community',
-      size: `${params} MB`,
-      quantization: 'INT8',
+      size: `${(params * 0.002).toFixed(1)} GB`,
+      quantization: quant,
       status: 'idle',
       parameters: params,
       category: 'text-generation',
-      description: 'Lightweight community model for edge deployment'
+      description: `Community-trained lightweight model optimized for ${['chat', 'code', 'roleplay', 'translation', 'summarization'][i % 5]}`
     });
   }
-
+  
+  console.log(`[ModelManager] Generated exactly ${models.length} models`);
   return models;
 };
 
@@ -580,10 +595,14 @@ export default function ModelManager() {
   const [customModel, setCustomModel] = useState('');
   const [pullingModelName, setPullingModelName] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [paramRange, setParamRange] = useState<[number, number]>([0, 20000]);
+  const [paramRange, setParamRange] = useState<[number, number]>([0, 500000]);
+  const [providerFilter, setProviderFilter] = useState<'all'|'ollama'|'huggingface'|'community'>('all');
+  const [quantFilter, setQuantFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all'|'loaded'|'downloading'|'idle'>('all');
+  const [sortBy, setSortBy] = useState<'name'|'params-desc'|'params-asc'|'size-desc'>('name');
 
   const filteredModels = useMemo(() => {
-    const models = activeTab === 'library' 
+    const models = activeTab === 'library'
       ? installedModels.map(m => ({
           id: m.digest,
           name: m.name,
@@ -600,13 +619,35 @@ export default function ModelManager() {
           status: installedModels.some(im => im.name.toLowerCase().includes(m.name.toLowerCase().split(' ')[0].toLowerCase())) ? 'loaded' : (isPulling && m.name === pullingModelName ? 'downloading' : 'idle')
         }));
 
-    return models.filter(m => {
+    const filtered = models.filter(m => {
       const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || m.category === selectedCategory;
       const matchesParams = m.parameters >= paramRange[0] && m.parameters <= paramRange[1];
-      return matchesSearch && matchesCategory && matchesParams;
+      const matchesProvider = providerFilter === 'all' || m.provider.toLowerCase() === providerFilter;
+      const matchesQuant = quantFilter === 'all' || m.quantization === quantFilter;
+      const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
+      return matchesSearch && matchesCategory && matchesParams && matchesProvider && matchesQuant && matchesStatus;
     });
-  }, [activeTab, installedModels, search, selectedCategory, paramRange, isPulling, pullingModelName]);
+
+    const parseSize = (s: string) => {
+      const n = parseFloat(s);
+      if (s.toUpperCase().includes('MB')) return n / 1024;
+      return n;
+    };
+
+    if (sortBy === 'name') filtered.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortBy === 'params-desc') filtered.sort((a, b) => b.parameters - a.parameters);
+    if (sortBy === 'params-asc') filtered.sort((a, b) => a.parameters - b.parameters);
+    if (sortBy === 'size-desc') filtered.sort((a, b) => parseSize(b.size) - parseSize(a.size));
+
+    return filtered;
+  }, [activeTab, installedModels, search, selectedCategory, paramRange, providerFilter, quantFilter, statusFilter, sortBy, isPulling, pullingModelName]);
+
+  const quantOptions = useMemo(() => {
+    const uniq = new Set<string>(['all']);
+    DISCOVER_MODELS.forEach(m => uniq.add(m.quantization));
+    return Array.from(uniq);
+  }, []);
 
   const handleDownload = async (name: string) => {
     setPullingModelName(name);
@@ -680,9 +721,54 @@ export default function ModelManager() {
                 <span>Params</span>
                 <span className="text-indigo-400">{paramRange[1] >= 1000 ? `${(paramRange[1]/1000).toFixed(1)}B` : `${paramRange[1]}M`}</span>
               </div>
-              <input type="range" min="10" max="20000" step="10" value={paramRange[1]} onChange={(e) => setParamRange([0, parseInt(e.target.value)])} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+              <input type="range" min="10" max="500000" step="10" value={paramRange[1]} onChange={(e) => setParamRange([0, parseInt(e.target.value)])} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <select
+            value={providerFilter}
+            onChange={(e) => setProviderFilter(e.target.value as 'all'|'ollama'|'huggingface'|'community')}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200"
+          >
+            <option value="all">Provider: All</option>
+            <option value="ollama">Provider: Ollama</option>
+            <option value="huggingface">Provider: HuggingFace</option>
+            <option value="community">Provider: Community</option>
+          </select>
+
+          <select
+            value={quantFilter}
+            onChange={(e) => setQuantFilter(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200"
+          >
+            {quantOptions.map(q => (
+              <option key={q} value={q}>{q === 'all' ? 'Quant: All' : `Quant: ${q}`}</option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all'|'loaded'|'downloading'|'idle')}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200"
+          >
+            <option value="all">Status: All</option>
+            <option value="loaded">Status: Installed</option>
+            <option value="downloading">Status: Downloading</option>
+            <option value="idle">Status: Not Installed</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'name'|'params-desc'|'params-asc'|'size-desc')}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-200"
+          >
+            <option value="name">Sort: Name (A-Z)</option>
+            <option value="params-desc">Sort: Params (High-Low)</option>
+            <option value="params-asc">Sort: Params (Low-High)</option>
+            <option value="size-desc">Sort: Size (Large-Small)</option>
+          </select>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -719,7 +805,7 @@ export default function ModelManager() {
           <div className="flex flex-col items-center justify-center h-64 text-slate-500">
             <Database className="w-12 h-12 mb-4 opacity-20" />
             <p>No models match your current filters.</p>
-            <p className="text-xs mt-2">Try adjusting the parameter range or search query.</p>
+            <p className="text-xs mt-2">Try adjusting category/provider/quantization/status filters.</p>
           </div>
         )}
 

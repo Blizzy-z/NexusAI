@@ -7,6 +7,8 @@ declare global {
       maximize: () => void;
       close: () => void;
       openExternal: (url: string) => void;
+      isElectron?: boolean;
     };
   }
 }
+
