@@ -7,7 +7,7 @@ import { spawn } from "child_process";
 import { createServer as createNetServer } from "net";
 import * as https from "https";
 import { networkInterfaces } from "os";
-import { readdir, readFile, writeFile } from "fs/promises";
+import { readdir, readFile, writeFile, mkdir, access } from "fs/promises";
 import { exec } from "child_process";
 import { promisify } from "util";
 const execAsync = promisify(exec);
@@ -99,6 +99,398 @@ async function startServer() {
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", version: "4.5.0" });
+  });
+
+  // ── Startup Builder Module (/startup and /startup/mobile) ─────────────────────
+  type StartupTaskStatus = "queued" | "running" | "done" | "error";
+  type StartupCheckStatus = "pending" | "ok" | "warn" | "error";
+  type StartupLeadStatus = "new" | "messaged" | "responded" | "qualified" | "closed";
+
+  interface StartupTask {
+    id: string;
+    title: string;
+    status: StartupTaskStatus;
+    detail: string;
+    updatedAt: number;
+  }
+
+  interface StartupLead {
+    id: string;
+    name: string;
+    email: string;
+    niche: string;
+    status: StartupLeadStatus;
+    valueUsd: number;
+    updatedAt: number;
+  }
+
+  interface StartupCheck {
+    id: string;
+    label: string;
+    status: StartupCheckStatus;
+    detail: string;
+    checkedAt: number;
+  }
+
+  interface StartupCampaign {
+    id: string;
+    name: string;
+    channel: string;
+    active: boolean;
+    sentCount: number;
+    responseCount: number;
+    updatedAt: number;
+  }
+
+  interface StartupState {
+    version: number;
+    mode: "safe" | "live";
+    autoLoopEnabled: boolean;
+    automationIntervalMinutes: number;
+    niche: string;
+    offerName: string;
+    monthlyTargetUsd: number;
+    pricingUsd: { starter: number; growth: number; scale: number };
+    channels: {
+      email: boolean;
+      sms: boolean;
+      dms: boolean;
+      calls: boolean;
+    };
+    schedule: { dailyStart: string; dailyEnd: string; timezone: string };
+    checks: StartupCheck[];
+    tasks: StartupTask[];
+    leads: StartupLead[];
+    campaigns: StartupCampaign[];
+    logs: { ts: number; level: "info" | "warn" | "error"; msg: string }[];
+    stats: {
+      outreachSent: number;
+      replies: number;
+      callsBooked: number;
+      closedDeals: number;
+      mrrUsd: number;
+    };
+    lastAuditAt: number | null;
+    nextRunAt: number | null;
+  }
+
+  const startupDataDir = path.join(process.cwd(), ".nexus_startup");
+  const startupStatePath = path.join(startupDataDir, "state.json");
+  let startupLoopTimer: ReturnType<typeof setInterval> | null = null;
+
+  const createStartupState = (): StartupState => {
+    const now = Date.now();
+    return {
+      version: 1,
+      mode: "safe",
+      autoLoopEnabled: true,
+      automationIntervalMinutes: 10,
+      niche: "Local service businesses",
+      offerName: "NexusAI Lead Engine",
+      monthlyTargetUsd: 3000,
+      pricingUsd: { starter: 499, growth: 999, scale: 1499 },
+      channels: { email: true, sms: false, dms: true, calls: true },
+      schedule: { dailyStart: "09:00", dailyEnd: "18:00", timezone: "local" },
+      checks: [
+        { id: "server-health", label: "Server health", status: "pending", detail: "Waiting for first audit", checkedAt: now },
+        { id: "cloudflare-health", label: "Cloudflare domain", status: "pending", detail: "Waiting for first audit", checkedAt: now },
+        { id: "offer-readiness", label: "Offer readiness", status: "pending", detail: "Waiting for first audit", checkedAt: now },
+        { id: "lead-flow", label: "Lead pipeline", status: "pending", detail: "Waiting for first audit", checkedAt: now },
+      ],
+      tasks: [
+        { id: "setup-offer", title: "Define service offer and pricing", status: "queued", detail: "Set starter, growth, and scale package details.", updatedAt: now },
+        { id: "setup-outreach", title: "Prepare outreach sequences", status: "queued", detail: "Create email and DM templates for 7-day cadence.", updatedAt: now },
+        { id: "setup-leadlist", title: "Create initial lead list", status: "queued", detail: "Collect first 50 prospects with business email + niche.", updatedAt: now },
+        { id: "setup-followup", title: "Enable follow-up automation", status: "queued", detail: "Run daily follow-up and qualification workflow.", updatedAt: now },
+      ],
+      leads: [],
+      campaigns: [
+        { id: "email-outreach", name: "Email Outreach", channel: "email", active: true, sentCount: 0, responseCount: 0, updatedAt: now },
+        { id: "dm-outreach", name: "DM Outreach", channel: "dms", active: true, sentCount: 0, responseCount: 0, updatedAt: now },
+      ],
+      logs: [{ ts: now, level: "info", msg: "Startup module initialized. First audit pending." }],
+      stats: { outreachSent: 0, replies: 0, callsBooked: 0, closedDeals: 0, mrrUsd: 0 },
+      lastAuditAt: null,
+      nextRunAt: now + 10 * 60 * 1000,
+    };
+  };
+
+  const startupLog = (state: StartupState, level: "info" | "warn" | "error", msg: string) => {
+    state.logs.unshift({ ts: Date.now(), level, msg });
+    if (state.logs.length > 200) state.logs = state.logs.slice(0, 200);
+  };
+
+  const safeReadStartupState = async (): Promise<StartupState> => {
+    try {
+      await access(startupStatePath);
+      const raw = await readFile(startupStatePath, "utf-8");
+      const parsed = JSON.parse(raw) as StartupState;
+      if (!parsed?.version) throw new Error("invalid startup state");
+      return parsed;
+    } catch {
+      const fallback = createStartupState();
+      await mkdir(startupDataDir, { recursive: true });
+      await writeFile(startupStatePath, JSON.stringify(fallback, null, 2), "utf-8");
+      return fallback;
+    }
+  };
+
+  const saveStartupState = async (state: StartupState) => {
+    await mkdir(startupDataDir, { recursive: true });
+    await writeFile(startupStatePath, JSON.stringify(state, null, 2), "utf-8");
+  };
+
+  const upsertCheck = (checks: StartupCheck[], next: StartupCheck) => {
+    const idx = checks.findIndex((c) => c.id === next.id);
+    if (idx === -1) checks.push(next);
+    else checks[idx] = next;
+  };
+
+  const runStartupAudit = async (reason: string): Promise<StartupState> => {
+    const state = await safeReadStartupState();
+    const now = Date.now();
+    state.lastAuditAt = now;
+    state.nextRunAt = now + Math.max(1, state.automationIntervalMinutes) * 60 * 1000;
+
+    // Check 1: Local server health
+    let serverOk = false;
+    try {
+      const r = await fetch(`http://127.0.0.1:${actualPort}/api/health`, { signal: AbortSignal.timeout(3000) });
+      serverOk = r.ok;
+    } catch {}
+    upsertCheck(state.checks, {
+      id: "server-health",
+      label: "Server health",
+      status: serverOk ? "ok" : "error",
+      detail: serverOk ? `NexusAI server healthy on port ${actualPort}` : "Server health check failed",
+      checkedAt: now,
+    });
+
+    // Check 2: Cloudflare domain health
+    let cfOk = false;
+    try {
+      const r = await fetch("https://nexusais.app/api/health", { signal: AbortSignal.timeout(6000) });
+      cfOk = r.ok;
+    } catch {}
+    upsertCheck(state.checks, {
+      id: "cloudflare-health",
+      label: "Cloudflare domain",
+      status: cfOk ? "ok" : "warn",
+      detail: cfOk ? "nexusais.app reachable" : "Domain check failed — verify tunnel/service",
+      checkedAt: now,
+    });
+
+    // Check 3: Offer readiness
+    const pricingReady = state.pricingUsd.starter > 0 && state.pricingUsd.growth >= state.pricingUsd.starter;
+    upsertCheck(state.checks, {
+      id: "offer-readiness",
+      label: "Offer readiness",
+      status: pricingReady ? "ok" : "error",
+      detail: pricingReady
+        ? `${state.offerName} configured (${state.pricingUsd.starter}/${state.pricingUsd.growth}/${state.pricingUsd.scale} USD)`
+        : "Pricing is not configured correctly",
+      checkedAt: now,
+    });
+
+    // Check 4: Lead flow
+    const leadCount = state.leads.length;
+    const leadStatus: StartupCheckStatus = leadCount >= 10 ? "ok" : leadCount >= 1 ? "warn" : "error";
+    upsertCheck(state.checks, {
+      id: "lead-flow",
+      label: "Lead pipeline",
+      status: leadStatus,
+      detail: leadCount === 0 ? "No leads yet — add first prospects" : `${leadCount} leads in pipeline`,
+      checkedAt: now,
+    });
+
+    // Auto-progress tasks based on checks
+    state.tasks = state.tasks.map((task) => {
+      if (task.id === "setup-offer" && pricingReady) return { ...task, status: "done", detail: "Offer + pricing configured.", updatedAt: now };
+      if (task.id === "setup-leadlist" && leadCount > 0) return { ...task, status: "done", detail: `Lead list has ${leadCount} entries.`, updatedAt: now };
+      if (task.status === "queued") return { ...task, status: "running", updatedAt: now };
+      return task;
+    });
+
+    startupLog(state, "info", `Automation audit completed (${reason}).`);
+    await saveStartupState(state);
+    return state;
+  };
+
+  const ensureStartupLoop = () => {
+    if (startupLoopTimer) clearInterval(startupLoopTimer);
+    startupLoopTimer = setInterval(async () => {
+      try {
+        const state = await safeReadStartupState();
+        if (!state.autoLoopEnabled) return;
+        if (state.nextRunAt && Date.now() < state.nextRunAt) return;
+        await runStartupAudit("timer");
+      } catch (e: any) {
+        console.error("[startup] periodic audit failed:", e?.message || e);
+      }
+    }, 60 * 1000);
+  };
+
+  const startupAppPath = path.join(__dirname, "public", "startup.html");
+  const startupMobilePath = path.join(__dirname, "public", "startup-mobile.html");
+
+  app.get("/startup", (_req, res) => {
+    res.sendFile(startupAppPath);
+  });
+  app.get("/startup/mobile", (_req, res) => {
+    res.sendFile(startupMobilePath);
+  });
+
+  app.get("/api/startup/state", async (_req, res) => {
+    try {
+      const state = await safeReadStartupState();
+      res.json(state);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/state", async (req, res) => {
+    try {
+      const current = await safeReadStartupState();
+      const patch = req.body || {};
+      const next: StartupState = {
+        ...current,
+        ...patch,
+        pricingUsd: { ...current.pricingUsd, ...(patch.pricingUsd || {}) },
+        channels: { ...current.channels, ...(patch.channels || {}) },
+        schedule: { ...current.schedule, ...(patch.schedule || {}) },
+      };
+      if (typeof next.automationIntervalMinutes !== "number" || next.automationIntervalMinutes < 1) {
+        next.automationIntervalMinutes = 10;
+      }
+      startupLog(next, "info", "Startup settings updated.");
+      await saveStartupState(next);
+      ensureStartupLoop();
+      res.json({ ok: true, state: next });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/leads", async (req, res) => {
+    try {
+      const { name, email, niche, valueUsd = 0 } = req.body || {};
+      if (!name || !email) return res.status(400).json({ error: "name and email required" });
+      const state = await safeReadStartupState();
+      const lead: StartupLead = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: String(name).trim(),
+        email: String(email).trim(),
+        niche: String(niche || state.niche).trim(),
+        status: "new",
+        valueUsd: Number(valueUsd) || 0,
+        updatedAt: Date.now(),
+      };
+      state.leads.unshift(lead);
+      startupLog(state, "info", `Lead added: ${lead.name} (${lead.email}).`);
+      await saveStartupState(state);
+      res.json({ ok: true, lead, total: state.leads.length });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/leads/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body || {};
+      const allowed: StartupLeadStatus[] = ["new", "messaged", "responded", "qualified", "closed"];
+      if (!allowed.includes(status)) return res.status(400).json({ error: "invalid status" });
+      const state = await safeReadStartupState();
+      const lead = state.leads.find((l) => l.id === id);
+      if (!lead) return res.status(404).json({ error: "lead not found" });
+      lead.status = status;
+      lead.updatedAt = Date.now();
+      if (status === "closed") {
+        state.stats.closedDeals += 1;
+        state.stats.mrrUsd += lead.valueUsd > 0 ? lead.valueUsd : state.pricingUsd.starter;
+      }
+      startupLog(state, "info", `Lead ${lead.name} moved to ${status}.`);
+      await saveStartupState(state);
+      res.json({ ok: true, lead, stats: state.stats });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/run-check", async (req, res) => {
+    try {
+      const reason = String(req.body?.reason || "manual");
+      const state = await runStartupAudit(reason);
+      res.json({ ok: true, state });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/seed", async (_req, res) => {
+    try {
+      const state = await safeReadStartupState();
+      const now = Date.now();
+      if (state.leads.length === 0) {
+        state.leads = [
+          { id: `${now}-a1`, name: "Apex Dental", email: "owner@apexdental.example", niche: "Dental", status: "new", valueUsd: 999, updatedAt: now },
+          { id: `${now}-a2`, name: "Pulse Fitness", email: "hello@pulsefitness.example", niche: "Fitness", status: "messaged", valueUsd: 999, updatedAt: now },
+          { id: `${now}-a3`, name: "Harbor Realty", email: "team@harborrealty.example", niche: "Real Estate", status: "responded", valueUsd: 1499, updatedAt: now },
+        ];
+        state.stats.outreachSent += 12;
+        state.stats.replies += 2;
+        state.campaigns = state.campaigns.map((c) => ({ ...c, sentCount: c.sentCount + 6, responseCount: c.responseCount + 1, updatedAt: now }));
+      }
+      startupLog(state, "info", "Demo lead data seeded.");
+      await saveStartupState(state);
+      const audited = await runStartupAudit("seed");
+      res.json({ ok: true, state: audited });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/startup/generate-plan", async (req: any, res: any) => {
+    try {
+      const state = await safeReadStartupState();
+      const objective = String(req.body?.objective || "Generate today's high-impact revenue plan.");
+      const prompt = [
+        `Business: ${state.offerName}`,
+        `Niche: ${state.niche}`,
+        `MRR target USD: ${state.monthlyTargetUsd}`,
+        `Pricing: starter ${state.pricingUsd.starter}, growth ${state.pricingUsd.growth}, scale ${state.pricingUsd.scale}`,
+        `Current stats: outreach=${state.stats.outreachSent}, replies=${state.stats.replies}, calls=${state.stats.callsBooked}, closed=${state.stats.closedDeals}, mrr=${state.stats.mrrUsd}`,
+        `Leads snapshot:\n${state.leads.slice(0, 10).map((l) => `- ${l.name} (${l.status}, ${l.email}, value ${l.valueUsd})`).join("\n") || "- none"}`,
+        `Request: ${objective}`,
+        "Output JSON with keys: dailyPlan (array), risks (array), quickWins (array), nextCheckFocus (array).",
+      ].join("\n\n");
+
+      const upstream = await fetch("http://127.0.0.1:11434/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gemma3:12b",
+          prompt,
+          stream: false,
+          options: { temperature: 0.3 },
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!upstream.ok) {
+        const text = await upstream.text().catch(() => upstream.statusText);
+        return res.status(502).json({ error: `Ollama plan generation failed: ${text}` });
+      }
+
+      const data = await upstream.json() as any;
+      const planText = String(data?.response || "").trim();
+      startupLog(state, "info", "AI startup plan generated.");
+      await saveStartupState(state);
+      res.json({ ok: true, plan: planText });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // Simple HTTP proxy for rendering third-party sites inside the app iframe.
@@ -287,7 +679,7 @@ async function startServer() {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       async function addDir(dir: string, z: any) {
-        const entries = await readdir(dir, { withFileTypes: true } as any);
+        const entries = await readdir(dir, { withFileTypes: true });
         for (const e of entries) {
           const full = path.join(dir, e.name);
           if (e.isDirectory()) { const f = z.folder(e.name); await addDir(full, f); }
@@ -2187,6 +2579,10 @@ async function startServer() {
     console.log(`│  ↑ Use HTTPS URL on iPhone for STT to work!     │`);
     }
     console.log(`└─────────────────────────────────────────────────┘\n`);
+    ensureStartupLoop();
+    runStartupAudit("startup").catch((e: any) => {
+      console.error("[startup] initial audit failed:", e?.message || e);
+    });
   });
 
   // HTTPS server on port+1 required for Web Speech API on iPhone 
@@ -2410,3 +2806,4 @@ async function startServer() {
 }
 
 startServer();
+

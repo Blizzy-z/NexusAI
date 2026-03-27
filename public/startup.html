@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="/nexusai.ico" />
+  <title>NexusAI Startup Engine</title>
+  <style>
+    :root {
+      --bg: #04050a;
+      --panel: #0d1020;
+      --panel2: #121735;
+      --border: rgba(148, 163, 184, 0.24);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #6366f1;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 10% 0%, #111735 0%, #06070f 48%, #030409 100%);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel {
+      background: rgba(13, 16, 32, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.2px;
+    }
+
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    a.link {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: rgba(99, 102, 241, 0.12);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1.2fr auto auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .toolbar input {
+      width: 100%;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.92rem;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 650;
+      font-size: 0.84rem;
+    }
+
+    button.secondary { background: #18203f; }
+    button.warn { background: #78350f; }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .status.ok {
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .status.error {
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      background: #0f1430;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 82px;
+    }
+
+    .card .k {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .card .v {
+      margin-top: 6px;
+      font-size: 1.25rem;
+      font-weight: 750;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .title-row {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .row {
+      border: 1px solid var(--border);
+      background: #0c1025;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .label {
+      font-size: 0.92rem;
+      font-weight: 650;
+    }
+
+    .pill {
+      font-size: 0.72rem;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .pill.ok { color: #6ee7b7; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.12); }
+    .pill.warn { color: #fcd34d; border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.12); }
+    .pill.error { color: #fca5a5; border-color: rgba(239, 68, 68, 0.45); background: rgba(239, 68, 68, 0.12); }
+    .pill.pending, .pill.queued { color: #cbd5e1; border-color: rgba(148, 163, 184, 0.45); background: rgba(148, 163, 184, 0.12); }
+    .pill.running, .pill.messaged, .pill.responded, .pill.qualified, .pill.done, .pill.closed, .pill.new {
+      color: #a5b4fc;
+      border-color: rgba(99, 102, 241, 0.45);
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .lead-form, .settings {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    input, select {
+      width: 100%;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.86rem;
+    }
+
+    .lead-form button {
+      grid-column: span 1;
+    }
+
+    .settings {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .settings .full {
+      grid-column: span 2;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-size: 0.83rem;
+      line-height: 1.45;
+      color: #d1d5db;
+      background: #070b19;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 280px;
+      overflow: auto;
+    }
+
+    @media (max-width: 1080px) {
+      .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+      .lead-form { grid-template-columns: 1fr 1fr; }
+      .settings { grid-template-columns: 1fr 1fr; }
+      .settings .full { grid-column: span 2; }
+    }
+
+    @media (max-width: 640px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lead-form, .settings, .toolbar { grid-template-columns: 1fr; }
+      .settings .full { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel header">
+      <div class="title">
+        <h1>Startup Engine (Web)</h1>
+        <p>Automated growth cockpit on <strong>nexusais.app/startup</strong></p>
+      </div>
+      <div class="links">
+        <a class="link" href="/startup/mobile">Open mobile view</a>
+        <a class="link" href="/app">Open NexusAI app</a>
+      </div>
+    </section>
+
+    <section class="panel toolbar">
+      <input id="objective" value="Generate today's high-impact revenue plan." />
+      <button id="runCheck">Run check</button>
+      <button id="seedDemo" class="warn">Seed demo</button>
+      <button id="genPlan" class="secondary">AI plan</button>
+    </section>
+
+    <div id="status" class="status">Loading startup state...</div>
+
+    <section id="stats" class="cards"></section>
+
+    <section class="grid-2">
+      <article class="panel">
+        <div class="title-row"><h2>System checks</h2><span class="sub">Runs every 10 minutes by default</span></div>
+        <div id="checks" class="list"></div>
+      </article>
+      <article class="panel">
+        <div class="title-row"><h2>Automation tasks</h2><span class="sub">Auto-progresses based on checks</span></div>
+        <div id="tasks" class="list"></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="title-row"><h2>Leads pipeline</h2><span class="sub">Add and move leads through the funnel</span></div>
+      <form id="leadForm" class="lead-form">
+        <input id="leadName" placeholder="Lead name" required />
+        <input id="leadEmail" type="email" placeholder="Lead email" required />
+        <input id="leadNiche" placeholder="Niche (optional)" />
+        <input id="leadValue" type="number" min="0" step="1" placeholder="Deal value USD" />
+        <button type="submit">Add lead</button>
+      </form>
+      <div id="leads" class="list" style="margin-top: 10px;"></div>
+    </section>
+
+    <section class="panel">
+      <div class="title-row"><h2>Business settings</h2><span class="sub">Patch persisted startup state</span></div>
+      <form id="settingsForm" class="settings">
+        <input id="offerName" placeholder="Offer name" class="full" />
+        <input id="niche" placeholder="Target niche" class="full" />
+        <input id="targetUsd" type="number" min="500" step="100" placeholder="Target MRR" />
+        <input id="starterUsd" type="number" min="0" step="10" placeholder="Starter" />
+        <input id="growthUsd" type="number" min="0" step="10" placeholder="Growth" />
+        <input id="scaleUsd" type="number" min="0" step="10" placeholder="Scale" />
+        <input id="intervalMins" type="number" min="1" step="1" placeholder="Interval (minutes)" />
+        <select id="loopEnabled">
+          <option value="true">Auto loop: on</option>
+          <option value="false">Auto loop: off</option>
+        </select>
+        <button type="submit">Save settings</button>
+      </form>
+    </section>
+
+    <section class="grid-2">
+      <article class="panel">
+        <div class="title-row"><h2>AI plan output</h2><span class="sub">From local Ollama via /api/startup/generate-plan</span></div>
+        <pre id="planOut">No plan generated yet.</pre>
+      </article>
+      <article class="panel">
+        <div class="title-row"><h2>Activity logs</h2><span class="sub">Newest first</span></div>
+        <div id="logs" class="list"></div>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    const LEAD_STATUSES = ["new", "messaged", "responded", "qualified", "closed"];
+    let state = null;
+    let planText = "";
+
+    const $ = (id) => document.getElementById(id);
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function money(value) {
+      const num = Number(value || 0);
+      return "$" + num.toLocaleString();
+    }
+
+    function when(ts) {
+      if (!ts) return "n/a";
+      try { return new Date(ts).toLocaleString(); } catch { return "n/a"; }
+    }
+
+    function setStatus(message, type) {
+      const el = $("status");
+      el.textContent = message;
+      el.className = "status" + (type ? " " + type : "");
+    }
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || (res.status + " " + res.statusText));
+      return body;
+    }
+
+    function renderStats() {
+      if (!state) return;
+      const s = state.stats || {};
+      const cards = [
+        ["Outreach sent", s.outreachSent || 0],
+        ["Replies", s.replies || 0],
+        ["Calls booked", s.callsBooked || 0],
+        ["Closed deals", s.closedDeals || 0],
+        ["MRR", money(s.mrrUsd || 0)],
+        ["Next run", when(state.nextRunAt)],
+      ];
+      $("stats").innerHTML = cards.map(([k, v]) => (
+        `<div class="card"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`
+      )).join("");
+    }
+
+    function renderChecks() {
+      const checks = state?.checks || [];
+      $("checks").innerHTML = checks.map((c) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(c.label)}</div>
+            <span class="pill ${escapeHtml(c.status)}">${escapeHtml(c.status)}</span>
+          </div>
+          <div class="sub">${escapeHtml(c.detail || "")}</div>
+          <div class="sub" style="margin-top:5px;">Checked: ${escapeHtml(when(c.checkedAt))}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No checks available.</div></div>`;
+    }
+
+    function renderTasks() {
+      const tasks = state?.tasks || [];
+      $("tasks").innerHTML = tasks.map((t) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(t.title)}</div>
+            <span class="pill ${escapeHtml(t.status)}">${escapeHtml(t.status)}</span>
+          </div>
+          <div class="sub">${escapeHtml(t.detail || "")}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No tasks available.</div></div>`;
+    }
+
+    function renderLeads() {
+      const leads = state?.leads || [];
+      $("leads").innerHTML = leads.slice(0, 30).map((l) => `
+        <div class="row">
+          <div class="split">
+            <div>
+              <div class="label">${escapeHtml(l.name)}</div>
+              <div class="sub">${escapeHtml(l.email)} | ${escapeHtml(l.niche)} | ${escapeHtml(money(l.valueUsd || 0))}</div>
+            </div>
+            <select data-lead-status="${escapeHtml(l.id)}">
+              ${LEAD_STATUSES.map((status) => `<option value="${status}" ${status === l.status ? "selected" : ""}>${status}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No leads yet. Add your first lead above.</div></div>`;
+    }
+
+    function renderLogs() {
+      const logs = state?.logs || [];
+      $("logs").innerHTML = logs.slice(0, 40).map((l) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(l.level.toUpperCase())}</div>
+            <div class="sub">${escapeHtml(when(l.ts))}</div>
+          </div>
+          <div class="sub">${escapeHtml(l.msg)}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No logs yet.</div></div>`;
+    }
+
+    function renderPlan() {
+      $("planOut").textContent = planText || "No plan generated yet.";
+    }
+
+    function renderSettings() {
+      if (!state) return;
+      $("offerName").value = state.offerName || "";
+      $("niche").value = state.niche || "";
+      $("targetUsd").value = state.monthlyTargetUsd || 0;
+      $("starterUsd").value = state.pricingUsd?.starter ?? 0;
+      $("growthUsd").value = state.pricingUsd?.growth ?? 0;
+      $("scaleUsd").value = state.pricingUsd?.scale ?? 0;
+      $("intervalMins").value = state.automationIntervalMinutes || 10;
+      $("loopEnabled").value = String(Boolean(state.autoLoopEnabled));
+    }
+
+    function renderAll() {
+      renderStats();
+      renderChecks();
+      renderTasks();
+      renderLeads();
+      renderLogs();
+      renderSettings();
+      renderPlan();
+    }
+
+    async function refresh(silent) {
+      try {
+        state = await api("/api/startup/state");
+        renderAll();
+        if (!silent) setStatus("Startup state synced.", "ok");
+      } catch (err) {
+        setStatus("Failed to load state: " + err.message, "error");
+      }
+    }
+
+    $("runCheck").addEventListener("click", async () => {
+      try {
+        setStatus("Running startup check...", "");
+        await api("/api/startup/run-check", { method: "POST", body: JSON.stringify({ reason: "dashboard" }) });
+        await refresh(true);
+        setStatus("Check completed.", "ok");
+      } catch (err) {
+        setStatus("Check failed: " + err.message, "error");
+      }
+    });
+
+    $("seedDemo").addEventListener("click", async () => {
+      try {
+        setStatus("Seeding demo data...", "");
+        await api("/api/startup/seed", { method: "POST", body: "{}" });
+        await refresh(true);
+        setStatus("Demo data seeded.", "ok");
+      } catch (err) {
+        setStatus("Seed failed: " + err.message, "error");
+      }
+    });
+
+    $("genPlan").addEventListener("click", async () => {
+      try {
+        setStatus("Generating AI plan...", "");
+        const objective = $("objective").value || "Generate today's high-impact revenue plan.";
+        const data = await api("/api/startup/generate-plan", { method: "POST", body: JSON.stringify({ objective }) });
+        planText = String(data.plan || "").trim() || "No response from model.";
+        renderPlan();
+        setStatus("AI plan generated.", "ok");
+      } catch (err) {
+        setStatus("Plan generation failed: " + err.message, "error");
+      }
+    });
+
+    $("leadForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Adding lead...", "");
+        await api("/api/startup/leads", {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("leadName").value.trim(),
+            email: $("leadEmail").value.trim(),
+            niche: $("leadNiche").value.trim(),
+            valueUsd: Number($("leadValue").value || 0),
+          }),
+        });
+        $("leadName").value = "";
+        $("leadEmail").value = "";
+        $("leadNiche").value = "";
+        $("leadValue").value = "";
+        await refresh(true);
+        setStatus("Lead added.", "ok");
+      } catch (err) {
+        setStatus("Failed to add lead: " + err.message, "error");
+      }
+    });
+
+    $("leads").addEventListener("change", async (event) => {
+      const target = event.target;
+      if (!target || !target.dataset || !target.dataset.leadStatus) return;
+      try {
+        const leadId = target.dataset.leadStatus;
+        const status = target.value;
+        await api("/api/startup/leads/" + encodeURIComponent(leadId) + "/status", {
+          method: "POST",
+          body: JSON.stringify({ status }),
+        });
+        await refresh(true);
+        setStatus("Lead status updated.", "ok");
+      } catch (err) {
+        setStatus("Lead update failed: " + err.message, "error");
+      }
+    });
+
+    $("settingsForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Saving settings...", "");
+        await api("/api/startup/state", {
+          method: "POST",
+          body: JSON.stringify({
+            offerName: $("offerName").value.trim(),
+            niche: $("niche").value.trim(),
+            monthlyTargetUsd: Number($("targetUsd").value || 0),
+            autoLoopEnabled: $("loopEnabled").value === "true",
+            automationIntervalMinutes: Number($("intervalMins").value || 10),
+            pricingUsd: {
+              starter: Number($("starterUsd").value || 0),
+              growth: Number($("growthUsd").value || 0),
+              scale: Number($("scaleUsd").value || 0),
+            },
+          }),
+        });
+        await refresh(true);
+        setStatus("Settings saved.", "ok");
+      } catch (err) {
+        setStatus("Settings save failed: " + err.message, "error");
+      }
+    });
+
+    refresh(false);
+    setInterval(() => refresh(true), 30000);
+  </script>
+</body>
+</html>

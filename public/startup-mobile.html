@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/x-icon" href="/nexusai.ico" />
+  <link rel="apple-touch-icon" href="/icon-180x180.png" />
+  <title>NexusAI Startup Mobile</title>
+  <style>
+    :root {
+      --safe-t: env(safe-area-inset-top);
+      --safe-b: env(safe-area-inset-bottom);
+      --safe-l: env(safe-area-inset-left);
+      --safe-r: env(safe-area-inset-right);
+      --bg: #030409;
+      --panel: #0c1020;
+      --border: rgba(148, 163, 184, 0.24);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --primary: #6366f1;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: linear-gradient(180deg, #0b1027 0%, #04060d 35%, #020307 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding-top: var(--safe-t);
+      padding-bottom: calc(8px + var(--safe-b));
+      padding-left: max(10px, var(--safe-l));
+      padding-right: max(10px, var(--safe-r));
+      max-width: 100vw;
+      overflow: hidden;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 2px 10px;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 760;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .tiny-link {
+      text-decoration: none;
+      color: #c7d2fe;
+      background: rgba(99, 102, 241, 0.16);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.72rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .status {
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.7);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .status.ok {
+      border-color: rgba(16, 185, 129, 0.45);
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .status.error {
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      padding: 10px 10px;
+      font-size: 0.8rem;
+      font-weight: 650;
+    }
+
+    button.alt { background: #16213a; }
+    button.warn { background: #78350f; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: rgba(15, 20, 45, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .k {
+      color: var(--muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .v {
+      margin-top: 4px;
+      font-size: 1rem;
+      font-weight: 730;
+    }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: grid;
+      gap: 8px;
+      padding-right: 2px;
+    }
+
+    .panel {
+      background: rgba(12, 16, 32, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .row {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0c1226;
+      padding: 8px;
+      margin-bottom: 6px;
+    }
+
+    .row:last-child { margin-bottom: 0; }
+
+    .row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .label { font-size: 0.82rem; font-weight: 650; }
+    .sub { color: var(--muted); font-size: 0.74rem; line-height: 1.35; }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      padding: 2px 7px;
+    }
+
+    .pill.ok { color: #6ee7b7; border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.12); }
+    .pill.warn { color: #fcd34d; border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.12); }
+    .pill.error { color: #fca5a5; border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.12); }
+
+    .pill.pending, .pill.queued {
+      color: #cbd5e1;
+      border-color: rgba(148,163,184,.5);
+      background: rgba(148,163,184,.12);
+    }
+
+    .pill.running, .pill.new, .pill.messaged, .pill.responded, .pill.qualified, .pill.closed, .pill.done {
+      color: #c7d2fe;
+      border-color: rgba(99,102,241,.45);
+      background: rgba(99,102,241,.18);
+    }
+
+    .inline {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #11193a;
+      color: var(--text);
+      padding: 8px 9px;
+      font-size: 0.8rem;
+    }
+
+    textarea { min-height: 66px; resize: vertical; }
+
+    .form {
+      display: grid;
+      gap: 6px;
+    }
+
+    pre {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #070b19;
+      color: #d1d5db;
+      font-size: 0.73rem;
+      line-height: 1.4;
+      padding: 9px;
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <div>
+        <div class="title">Startup Engine Mobile</div>
+        <div class="subtitle">nexusais.app/startup/mobile</div>
+      </div>
+      <a class="tiny-link" href="/startup">Desktop</a>
+    </div>
+
+    <div id="status" class="status">Loading state...</div>
+
+    <div class="actions">
+      <button id="runCheck">Run check</button>
+      <button id="seedDemo" class="warn">Seed demo</button>
+      <button id="genPlan" class="alt">Generate AI plan</button>
+      <button id="saveSettings" class="alt">Save settings</button>
+    </div>
+
+    <div class="cards" id="stats"></div>
+
+    <div class="scroll">
+      <section class="panel">
+        <h2>Objective</h2>
+        <textarea id="objective">Generate today's high-impact revenue plan.</textarea>
+      </section>
+
+      <section class="panel">
+        <h2>Checks</h2>
+        <div id="checks"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Tasks</h2>
+        <div id="tasks"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Add lead</h2>
+        <form id="leadForm" class="form">
+          <input id="leadName" placeholder="Lead name" required />
+          <input id="leadEmail" type="email" placeholder="Lead email" required />
+          <input id="leadNiche" placeholder="Niche (optional)" />
+          <input id="leadValue" type="number" min="0" step="1" placeholder="Deal value USD" />
+          <button type="submit">Add lead</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Leads</h2>
+        <div id="leads"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Settings</h2>
+        <div class="form">
+          <input id="offerName" placeholder="Offer name" />
+          <input id="niche" placeholder="Niche" />
+          <input id="targetUsd" type="number" min="500" step="100" placeholder="Target MRR" />
+          <input id="starterUsd" type="number" min="0" step="10" placeholder="Starter USD" />
+          <input id="growthUsd" type="number" min="0" step="10" placeholder="Growth USD" />
+          <input id="scaleUsd" type="number" min="0" step="10" placeholder="Scale USD" />
+          <input id="intervalMins" type="number" min="1" step="1" placeholder="Interval minutes" />
+          <select id="loopEnabled">
+            <option value="true">Auto loop on</option>
+            <option value="false">Auto loop off</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>AI plan output</h2>
+        <pre id="planOut">No plan generated yet.</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Logs</h2>
+        <div id="logs"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const LEAD_STATUSES = ["new", "messaged", "responded", "qualified", "closed"];
+    let state = null;
+    let planText = "";
+
+    const $ = (id) => document.getElementById(id);
+
+    function esc(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function money(v) { return "$" + Number(v || 0).toLocaleString(); }
+    function when(ts) { try { return ts ? new Date(ts).toLocaleString() : "n/a"; } catch { return "n/a"; } }
+
+    function setStatus(message, type) {
+      const el = $("status");
+      el.textContent = message;
+      el.className = "status" + (type ? " " + type : "");
+    }
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || (res.status + " " + res.statusText));
+      return body;
+    }
+
+    function renderStats() {
+      if (!state) return;
+      const s = state.stats || {};
+      const cards = [
+        ["Outreach", s.outreachSent || 0],
+        ["Replies", s.replies || 0],
+        ["Closed", s.closedDeals || 0],
+        ["MRR", money(s.mrrUsd || 0)],
+      ];
+      $("stats").innerHTML = cards.map(([k, v]) => (
+        `<div class="card"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`
+      )).join("");
+    }
+
+    function renderChecks() {
+      const checks = state?.checks || [];
+      $("checks").innerHTML = checks.map((c) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(c.label)}</div>
+            <span class="pill ${esc(c.status)}">${esc(c.status)}</span>
+          </div>
+          <div class="sub">${esc(c.detail || "")}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No checks yet.</div></div>`;
+    }
+
+    function renderTasks() {
+      const tasks = state?.tasks || [];
+      $("tasks").innerHTML = tasks.map((t) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(t.title)}</div>
+            <span class="pill ${esc(t.status)}">${esc(t.status)}</span>
+          </div>
+          <div class="sub">${esc(t.detail || "")}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No tasks yet.</div></div>`;
+    }
+
+    function renderLeads() {
+      const leads = state?.leads || [];
+      $("leads").innerHTML = leads.slice(0, 24).map((l) => `
+        <div class="row">
+          <div class="inline">
+            <div>
+              <div class="label">${esc(l.name)}</div>
+              <div class="sub">${esc(l.email)} | ${esc(money(l.valueUsd || 0))}</div>
+            </div>
+            <select data-lead-status="${esc(l.id)}">
+              ${LEAD_STATUSES.map((status) => `<option value="${status}" ${status === l.status ? "selected" : ""}>${status}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No leads yet.</div></div>`;
+    }
+
+    function renderLogs() {
+      const logs = state?.logs || [];
+      $("logs").innerHTML = logs.slice(0, 24).map((l) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(l.level.toUpperCase())}</div>
+            <div class="sub">${esc(when(l.ts))}</div>
+          </div>
+          <div class="sub">${esc(l.msg)}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No logs yet.</div></div>`;
+    }
+
+    function renderPlan() { $("planOut").textContent = planText || "No plan generated yet."; }
+
+    function renderSettings() {
+      if (!state) return;
+      $("offerName").value = state.offerName || "";
+      $("niche").value = state.niche || "";
+      $("targetUsd").value = state.monthlyTargetUsd || 0;
+      $("starterUsd").value = state.pricingUsd?.starter ?? 0;
+      $("growthUsd").value = state.pricingUsd?.growth ?? 0;
+      $("scaleUsd").value = state.pricingUsd?.scale ?? 0;
+      $("intervalMins").value = state.automationIntervalMinutes || 10;
+      $("loopEnabled").value = String(Boolean(state.autoLoopEnabled));
+    }
+
+    function renderAll() {
+      renderStats();
+      renderChecks();
+      renderTasks();
+      renderLeads();
+      renderLogs();
+      renderSettings();
+      renderPlan();
+    }
+
+    async function refresh(silent) {
+      try {
+        state = await api("/api/startup/state");
+        renderAll();
+        if (!silent) {
+          setStatus("Synced. Next run: " + when(state.nextRunAt), "ok");
+        }
+      } catch (err) {
+        setStatus("Load failed: " + err.message, "error");
+      }
+    }
+
+    async function saveSettings() {
+      await api("/api/startup/state", {
+        method: "POST",
+        body: JSON.stringify({
+          offerName: $("offerName").value.trim(),
+          niche: $("niche").value.trim(),
+          monthlyTargetUsd: Number($("targetUsd").value || 0),
+          autoLoopEnabled: $("loopEnabled").value === "true",
+          automationIntervalMinutes: Number($("intervalMins").value || 10),
+          pricingUsd: {
+            starter: Number($("starterUsd").value || 0),
+            growth: Number($("growthUsd").value || 0),
+            scale: Number($("scaleUsd").value || 0),
+          },
+        }),
+      });
+    }
+
+    $("runCheck").addEventListener("click", async () => {
+      try {
+        setStatus("Running check...", "");
+        await api("/api/startup/run-check", { method: "POST", body: JSON.stringify({ reason: "mobile-dashboard" }) });
+        await refresh(true);
+        setStatus("Check complete.", "ok");
+      } catch (err) {
+        setStatus("Check failed: " + err.message, "error");
+      }
+    });
+
+    $("seedDemo").addEventListener("click", async () => {
+      try {
+        setStatus("Seeding demo...", "");
+        await api("/api/startup/seed", { method: "POST", body: "{}" });
+        await refresh(true);
+        setStatus("Demo seeded.", "ok");
+      } catch (err) {
+        setStatus("Seed failed: " + err.message, "error");
+      }
+    });
+
+    $("genPlan").addEventListener("click", async () => {
+      try {
+        setStatus("Generating plan...", "");
+        const objective = $("objective").value || "Generate today's high-impact revenue plan.";
+        const data = await api("/api/startup/generate-plan", {
+          method: "POST",
+          body: JSON.stringify({ objective }),
+        });
+        planText = String(data.plan || "").trim() || "No response.";
+        renderPlan();
+        setStatus("Plan generated.", "ok");
+      } catch (err) {
+        setStatus("Plan failed: " + err.message, "error");
+      }
+    });
+
+    $("saveSettings").addEventListener("click", async () => {
+      try {
+        setStatus("Saving settings...", "");
+        await saveSettings();
+        await refresh(true);
+        setStatus("Settings saved.", "ok");
+      } catch (err) {
+        setStatus("Save failed: " + err.message, "error");
+      }
+    });
+
+    $("leadForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Adding lead...", "");
+        await api("/api/startup/leads", {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("leadName").value.trim(),
+            email: $("leadEmail").value.trim(),
+            niche: $("leadNiche").value.trim(),
+            valueUsd: Number($("leadValue").value || 0),
+          }),
+        });
+        $("leadName").value = "";
+        $("leadEmail").value = "";
+        $("leadNiche").value = "";
+        $("leadValue").value = "";
+        await refresh(true);
+        setStatus("Lead added.", "ok");
+      } catch (err) {
+        setStatus("Add lead failed: " + err.message, "error");
+      }
+    });
+
+    $("leads").addEventListener("change", async (event) => {
+      const target = event.target;
+      if (!target || !target.dataset || !target.dataset.leadStatus) return;
+      try {
+        await api("/api/startup/leads/" + encodeURIComponent(target.dataset.leadStatus) + "/status", {
+          method: "POST",
+          body: JSON.stringify({ status: target.value }),
+        });
+        await refresh(true);
+        setStatus("Lead status saved.", "ok");
+      } catch (err) {
+        setStatus("Lead status failed: " + err.message, "error");
+      }
+    });
+
+    refresh(false);
+    setInterval(() => refresh(true), 30000);
+  </script>
+</body>
+</html>
