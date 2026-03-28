@@ -85,7 +85,7 @@ const defaultSettings: Settings = {
   ollama:  { host: 'http://localhost', port: '11434', remoteHost: '', remotePort: '11434', useRemote: false },
   userProfile: {
     name: 'User', displayName: 'User', avatar: '🧑💻', bio: '',
-    voiceId: '', voiceEnrolled: false, voicePassword: '', voiceSamples: [], elevenLabsVoice: '21m00Tcm4TlvDq8ikWAM', sidebarModel: '__gemini__',
+    voiceId: '', voiceEnrolled: false, voicePassword: '', voiceSamples: [], elevenLabsVoice: '21m00Tcm4TlvDq8ikWAM', sidebarModel: 'gemma3:12b',
     language: 'en-US', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     occupation: '', assistantName: 'Nexus', assistantPersonality: 'helpful',
     age: '', location: '', interests: '', goals: '', relationship: '', personality: '',
@@ -238,3 +238,4 @@ export const useSettings = () => {
   if (!ctx) throw new Error('useSettings must be used within SettingsProvider');
   return ctx;
 };
+

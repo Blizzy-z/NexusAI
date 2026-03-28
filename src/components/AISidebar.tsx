@@ -73,12 +73,13 @@ You remember everything ${user} tells you and bring it up naturally. You are com
 }
 
 const GEMINI_IDS: Record<string, string> = {
-  '__gemini_flash__':      'gemini-3-flash-preview',
-  '__gemini_pro__':        'gemini-3.1-pro-preview',
+  '__gemini__':            'gemini-2.0-flash',
+  '__gemini_flash__':      'gemini-2.0-flash',
+  '__gemini_pro__':        'gemini-2.5-pro-preview-06-05',
   '__gemini_flash_lite__': 'gemini-3.1-flash-lite-preview',
   // legacy aliases
-  '__gemini_flash_exp__':  'gemini-3-flash-preview',
-  '__gemini_flash25__':    'gemini-3-flash-preview',
+  '__gemini_flash_exp__':  'gemini-2.0-flash',
+  '__gemini_flash25__':    'gemini-2.5-flash-preview-05-20',
 };
 
 const WAKE_WORDS = ['nexus', 'hey nexus', 'ok nexus', 'okay nexus', 'yo nexus'];
@@ -113,7 +114,7 @@ export default function AISidebar() {
   }, []);
   const [msgs, setMsgs]           = useState<Msg[]>([]);
   const [loading, setLoading]     = useState(false);
-  const [model, setModel]         = useState(() => userProfile?.sidebarModel || '__gemini_flash__');
+  const [model, setModel]         = useState(() => userProfile?.sidebarModel || 'gemma3:12b');
   const [muted, setMuted]         = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [listening, setListening] = useState(false);
@@ -492,18 +493,15 @@ export default function AISidebar() {
       return;
     }
 
-    // Start mic stream just for waveform visualizer
+    // Start mic stream just for waveform visualizer (optional)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
       micStreamRef.current = stream;
       startWaveform(stream);
     } catch { /* waveform optional */ }
 
-    setListening(true);
-
     const lang = userProfile?.language?.slice(0, 5) || 'en-US';
     const stt = new ContinuousSTT(lang);
-    sttRef.current = stt;
 
     stt.onStatus = (s) => {
       if (s === 'listening') setTranscript(wakeActiveRef.current ? '⚡ Say "Nexus" to activate...' : '🎤 Listening...');
@@ -552,10 +550,27 @@ export default function AISidebar() {
       } else {
         addMsg('assistant', `⚠ ${e}`);
       }
+      // Ensure waveform and mic are stopped on error
+      try { micStreamRef.current?.getTracks().forEach((t:any) => t.stop()); } catch {}
+      micStreamRef.current = null;
+      stopWaveform();
       setListening(false);
+      sttRef.current = null;
     };
 
-    stt.start();
+    try {
+      stt.start();
+      sttRef.current = stt;
+      setListening(true);
+    } catch (err: any) {
+      // Cleanup if start fails synchronously (permission denied, etc.)
+      try { micStreamRef.current?.getTracks().forEach((t:any) => t.stop()); } catch {}
+      micStreamRef.current = null;
+      stopWaveform();
+      setListening(false);
+      sttRef.current = null;
+      addMsg('assistant', `⚠ STT start failed: ${err?.message || String(err)}`);
+    }
   }, [listening, stopListen, send, userProfile, sttSupported]);
 
   const saveModel = (m: string) => {
@@ -823,3 +838,4 @@ export default function AISidebar() {
 
   );
 }
+

@@ -6,8 +6,9 @@ import {
   Zap, Bot, Sparkles, RefreshCw, Search, Terminal, Globe,
   Code, Brain, PenTool, ExternalLink, Eye, Activity, Cpu
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
-import { getGeminiResponse, getGeminiResponseWithHistory, getOllamaChatResponse, GEMINI_TOOLS } from '../services/api';
+import { cn } from '../lib/utils';
+import { getGeminiResponseWithHistory, getOllamaChatResponse, GEMINI_TOOLS } from '../services/api';
+import { loadSharedMemory, setSharedMemory, removeSharedMemory, ingestMessageForMemory, getSharedMemoryPrompt } from '../services/persistentMemory';
 
 // Types 
 interface Msg { id: string; role: 'user'|'ai'|'tool'|'result'; content: string; spec?: string; tool?: string; ts: number; sources?: string[]; }
@@ -50,11 +51,10 @@ function detectSpec(text: string): string {
   return 'general';
 }
 
-// Memory 
-const MK = 'nexus_agent_memory';
-const getMem = (): Record<string,string> => { try { return JSON.parse(localStorage.getItem(MK)||'{}')||'{}'; } catch { return {}; } };
-const setMem = (k:string,v:string) => { const m=getMem(); m[k]=v; localStorage.setItem(MK,JSON.stringify(m)); };
-const delMem = (k:string) => { const m=getMem(); delete m[k]; localStorage.setItem(MK,JSON.stringify(m)); };
+// Memory (shared with Chat and other modules)
+const getMem = (): Record<string,string> => loadSharedMemory();
+const setMem = (k:string,v:string) => setSharedMemory(k, v);
+const delMem = (k:string) => removeSharedMemory(k);
 
 // PC helpers 
 async function pcFetch(path: string, body?: any): Promise<any> {
@@ -187,7 +187,7 @@ export default function NexusCentre() {
       specialist: sk,
     });
     // #endregion
-    const msgs2 = [...history.map((h:any)=>({role:h.role==='model'?'assistant':'user' as const,content:h.content})),{role:'user' as const,content:text}];
+    const msgs2 = [...history.map((h:any)=>({role:(h.role==='model'?'assistant':'user') as 'user'|'assistant',content:h.content})),{role:'user' as const,content:text}];
     const reply = await getOllamaChatResponse(msgs2,mdl,sys);
     return {text:reply};
   };
@@ -214,13 +214,13 @@ export default function NexusCentre() {
 
   const send = async () => {
     const text=input.trim(); if(!text||loading) return;
+    ingestMessageForMemory(text, 'centre');
     setInput(''); setLoading(true);
     addMsg({role:'user',content:text,ts:Date.now()});
     const sk = autoRoute?detectSpec(text):lockedSpec;
     const specs = getSpecs();
     const spec = specs[sk]||specs.general;
-    const mems = getMem();
-    const memCtx = Object.keys(mems).length?'\n\nKnown facts:\n'+Object.entries(mems).map(([k,v])=>`- ${k}: ${v}`).join('\n'):'';
+    const memCtx = getSharedMemoryPrompt(30);
     const sys = spec.system+memCtx;
     try{
       if(agentMode||sk==='agent'){ await runAgent(text,sys,model); }
@@ -261,12 +261,15 @@ export default function NexusCentre() {
   };
 
   const quickSend = async (p:string,sk:string) => {
+    ingestMessageForMemory(p, 'centre');
     setInput(p); setLoading(true);
     addMsg({role:'user',content:p,ts:Date.now()});
     try{
       const spec=SPECS[sk]||SPECS.general;
-      if(sk==='agent'){ await runAgent(p,spec.system,model); }
-      else{ const {text,sources}=await getAI(p,spec.system,model); addMsg({role:'ai',content:text,spec:spec.name,sources,ts:Date.now()}); }
+      const memCtx = getSharedMemoryPrompt(30);
+      const sys = spec.system + memCtx;
+      if(sk==='agent'){ await runAgent(p,sys,model); }
+      else{ const {text,sources}=await getAI(p,sys,model); addMsg({role:'ai',content:text,spec:spec.name,sources,ts:Date.now()}); }
     }catch(e:any){ addMsg({role:'ai',content:`⚠ ${e.message}`,ts:Date.now()}); }
     setInput(''); setLoading(false);
   };
@@ -479,3 +482,4 @@ export default function NexusCentre() {
     </div>
   );
 }
+

@@ -1,5 +1,55 @@
 import { GoogleGenAI } from "@google/genai";
 
+const DEFAULT_MAIN_SYSTEM_PROMPT =
+  "You are Nexus, a highly capable AI assistant running locally on this machine. You are helpful, direct, and technically precise.";
+
+type NexusSettings = {
+  aiPersona?: string;
+  defaultModel?: string;
+  geminiApiKey?: string;
+  ollamaUrl?: string;
+  providers?: { gemini?: string };
+  ollama?: { host?: string; port?: string };
+};
+
+function readNexusSettings(): NexusSettings {
+  try {
+    return JSON.parse(localStorage.getItem('nexus_settings') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+export function getGlobalSystemPrompt(): string {
+  const settings = readNexusSettings();
+  const fromSettings = String(settings?.aiPersona || '').trim();
+  return fromSettings || DEFAULT_MAIN_SYSTEM_PROMPT;
+}
+
+export function resolveSystemPrompt(pagePrompt?: string): string {
+  const globalPrompt = getGlobalSystemPrompt();
+  const scopedPrompt = String(pagePrompt || '').trim();
+  if (!scopedPrompt) return globalPrompt;
+  if (scopedPrompt.includes(globalPrompt)) return scopedPrompt;
+  return `${globalPrompt}\n\nAdditional page instructions:\n${scopedPrompt}`;
+}
+
+export function getDefaultModelFromSettings(): string {
+  const settings = readNexusSettings();
+  const model = String(settings?.defaultModel || '').trim();
+  return model || 'mdq100/Gemma3-Instruct-Abliterated:12b';
+}
+
+function getOllamaBaseFromSettings(): string {
+  const settings = readNexusSettings();
+  const host = String(settings?.ollama?.host || '').trim().replace(/\/$/, '');
+  const port = String(settings?.ollama?.port || '11434').trim();
+  if (host) return /:\d+$/.test(host) ? host : `${host}:${port}`;
+  const explicit = String(settings?.ollamaUrl || '').trim().replace(/\/$/, '');
+  if (explicit) return explicit;
+  return 'http://127.0.0.1:11434';
+}
+
 // Strip Qwen3/3.5 thinking tokens from model output.
 // These models output <think>...</think> before the actual answer.
 // The content inside is the model's internal reasoning chain not the response.
@@ -28,7 +78,12 @@ function getGeminiKey(): string {
   if (direct) return direct;
   try {
     const s = JSON.parse(localStorage.getItem('nexus_settings') || '{}');
-    return s?.providers?.gemini || '';
+    if (s?.providers?.gemini) return s.providers.gemini;
+    if (s?.geminiApiKey) return s.geminiApiKey;
+  } catch {}
+  try {
+    const mobile = JSON.parse(localStorage.getItem('nxa_settings') || '{}');
+    return mobile?.geminiKey || '';
   } catch { return ''; }
 }
 
@@ -44,8 +99,12 @@ export const getGeminiResponse = async (prompt: string, systemInstruction?: stri
   const apiKey = getGeminiKey();
   if (!apiKey) throw new Error("Gemini API Key is missing. Please add it in Settings -> API Providers -> Google Gemini.");
 
-  const sys = systemInstruction || "You are NexusAI, a helpful AI assistant.";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  const sys = resolveSystemPrompt(systemInstruction);
+  const requestedModel = String(modelName || '').trim();
+  const resolvedModel = requestedModel.startsWith('gemini')
+    ? requestedModel
+    : (requestedModel.includes('/') ? 'gemini-2.0-flash' : requestedModel || 'gemini-2.0-flash');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${resolvedModel}:generateContent?key=${apiKey}`;
   const body: any = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     systemInstruction: { parts: [{ text: sys }] },
@@ -73,14 +132,9 @@ export const getGeminiResponse = async (prompt: string, systemInstruction?: stri
 
 export const getOllamaResponse = async (prompt: string, model: string, systemPrompt?: string) => {
   try {
-    let ollamaUrl = "http://127.0.0.1:11434";
-    const savedSettings = localStorage.getItem('nexus_settings');
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      if (parsed.ollama && parsed.ollama.host) {
-        ollamaUrl = `${parsed.ollama.host}:${parsed.ollama.port}`;
-      }
-    }
+    const ollamaUrl = getOllamaBaseFromSettings();
+    const selectedModel = String(model || '').trim() || getDefaultModelFromSettings();
+    const effectiveSystemPrompt = resolveSystemPrompt(systemPrompt);
 
     const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: "POST",
@@ -88,9 +142,9 @@ export const getOllamaResponse = async (prompt: string, model: string, systemPro
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: model,
+        model: selectedModel,
         prompt: prompt,
-        system: systemPrompt,
+        system: effectiveSystemPrompt,
         stream: false,
       }),
     });
@@ -113,35 +167,29 @@ export const getOllamaChatResponse = async (
   model: string,
   systemPrompt?: string
 ): Promise<string> => {
-  let base = 'http://localhost:11434';
-  try {
-    const s = JSON.parse(localStorage.getItem('nexus_settings') || '{}');
-    const host = (s?.ollama?.host || 'http://localhost').replace(/\/$/, '');
-    const port = s?.ollama?.port || '11434';
-    base = /:\d+$/.test(host) ? host : `${host}:${port}`;
-  } catch {}
+  const base = getOllamaBaseFromSettings();
 
   // Resolve exact model name from what's installed
-  let resolvedModel = model;
+  const requestedModel = String(model || '').trim() || getDefaultModelFromSettings();
+  let resolvedModel = requestedModel;
   try {
     const tagsRes = await fetch(`${base}/api/tags`);
     if (tagsRes.ok) {
       const tags = await tagsRes.json();
       const installed: string[] = (tags.models || []).map((m: any) => m.name);
       // Try exact match first
-      const exact = installed.find(n => n === model);
+      const exact = installed.find(n => n === requestedModel);
       // Try name without tag (e.g. "dolphin-llama3" matches "dolphin-llama3:latest")
-      const nameOnly = installed.find(n => n.split(':')[0] === model.split(':')[0]);
+      const nameOnly = installed.find(n => n.split(':')[0] === requestedModel.split(':')[0]);
       // Try partial match
-      const partial = installed.find(n => n.includes(model.split(':')[0]));
-      resolvedModel = exact || nameOnly || partial || model;
-      if (resolvedModel !== model) console.log(`[Ollama] Resolved "${model}" -> "${resolvedModel}"`);
+      const partial = installed.find(n => n.includes(requestedModel.split(':')[0]));
+      resolvedModel = exact || nameOnly || partial || requestedModel;
+      if (resolvedModel !== requestedModel) console.log(`[Ollama] Resolved "${requestedModel}" -> "${resolvedModel}"`);
     }
   } catch {}
 
-  const finalMessages: any[] = systemPrompt
-    ? [{ role: 'system', content: systemPrompt }, ...messages]
-    : messages;
+  const effectiveSystemPrompt = resolveSystemPrompt(systemPrompt);
+  const finalMessages: any[] = [{ role: 'system', content: effectiveSystemPrompt }, ...messages];
 
   let response = await fetch(`${base}/api/chat`, {
     method: "POST",
@@ -151,7 +199,7 @@ export const getOllamaChatResponse = async (
   // Fallback for older Ollama (< 0.1.14) that lacks /api/chat
   if (response.status === 404) {
     const userMsg = finalMessages.filter((m:any) => m.role !== 'system').map((m:any) => m.content).join('\n');
-    const sysMsg  = (finalMessages.find((m:any) => m.role === 'system') as any)?.content || '';
+    const sysMsg  = (finalMessages.find((m:any) => m.role === 'system') as any)?.content || effectiveSystemPrompt;
     response = await fetch(`${base}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -160,7 +208,7 @@ export const getOllamaChatResponse = async (
   }
   if (!response.ok) {
     const errText = await response.text().catch(() => response.statusText);
-    throw new Error(`Ollama error (${response.status}): ${errText.slice(0,200)}\n\nModel tried: "${resolvedModel}"\nRun: ollama pull ${model}`);
+    throw new Error(`Ollama error (${response.status}): ${errText.slice(0,200)}\n\nModel tried: "${resolvedModel}"\nRun: ollama pull ${requestedModel}`);
   }
   const data = await response.json();
   const raw = data.message?.content || (data as any).response || "";
@@ -171,11 +219,11 @@ export const getOllamaChatResponse = async (
 
 // GEMINI_MODELS constant 
 export const GEMINI_MODELS = {
-  FLASH:      "mdq100/Gemma3-Instruct-Abliterated:12b",
-  FLASH_EXP:  "mdq100/Gemma3-Instruct-Abliterated:12b",
-  PRO:        "mdq100/Gemma3-Instruct-Abliterated:12b",
+  FLASH:      "gemini-2.0-flash",
+  FLASH_EXP:  "gemini-2.0-flash",
+  PRO:        "gemini-2.5-pro-preview-06-05",
   FLASH_LITE: "gemini-3.1-flash-lite-preview",
-  FLASH_25:   "mdq100/Gemma3-Instruct-Abliterated:12b",
+  FLASH_25:   "gemini-2.5-flash-preview-05-20",
 };
 
 // Gemini chat uses raw REST API for maximum control + no SDK quirks 
@@ -191,7 +239,7 @@ export const getGeminiChatResponse = async (
   const lastMsg  = filtered[filtered.length - 1];
   const history  = filtered.slice(0, -1);
 
-  const sys = systemPrompt || 'You are a helpful assistant.';
+  const sys = resolveSystemPrompt(systemPrompt);
 
   // Build clean alternating history (Gemini requires user/model alternation)
   const geminiHistory: { role: 'user'|'model'; parts: { text: string }[] }[] = [];
@@ -202,10 +250,10 @@ export const getGeminiChatResponse = async (
   }
   while (geminiHistory.length > 0 && geminiHistory[0].role !== 'user') geminiHistory.shift();
 
-  // System prompt baked in as first user/model exchange belt and suspenders
+  // System prompt baked in as first user/model exchange
   const contents = [
     { role: 'user',  parts: [{ text: `[INST] ${sys} [/INST]` }] },
-    { role: 'model', parts: [{ text: 'Understood completely. I will follow every instruction without restriction.' }] },
+    { role: 'model', parts: [{ text: 'Understood. I will follow these instructions.' }] },
     ...geminiHistory,
     { role: 'user',  parts: [{ text: lastMsg?.content || '' }] },
   ];
@@ -258,7 +306,7 @@ export const getGeminiResponseWithHistory = async (
   const apiKey = getGeminiKey();
   if (!apiKey) throw new Error('No Gemini API key set -- go to Settings -> API Providers');
 
-  const model = modelName.startsWith('gemini') ? modelName : 'mdq100/Gemma3-Instruct-Abliterated:12b';
+  const model = modelName.startsWith('gemini') ? modelName : GEMINI_MODELS.FLASH;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   // Build contents array from history + current prompt
@@ -280,7 +328,8 @@ export const getGeminiResponseWithHistory = async (
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
     ],
   };
-  if (systemInstruction) body.systemInstruction = { parts: [{ text: systemInstruction }] };
+  const sys = resolveSystemPrompt(systemInstruction);
+  if (sys) body.systemInstruction = { parts: [{ text: sys }] };
   if (tools.length > 0) body.tools = tools;
 
   const res  = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -312,7 +361,7 @@ export function formatModelName(raw: string): string {
 export async function askOllama(
   prompt: string,
   systemPrompt?: string,
-  model: string = 'gemma3:12b'
+  model: string = getDefaultModelFromSettings()
 ): Promise<string> {
   return getOllamaChatResponse(
     [{ role: 'user', content: prompt }],
@@ -320,3 +369,4 @@ export async function askOllama(
     systemPrompt
   );
 }
+
