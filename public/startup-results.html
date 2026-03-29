@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="/nexusai.ico" />
+  <title>NexusAI Startup Results</title>
+  <style>
+    :root {
+      --bg0: #000000;
+      --bg1: #07040f;
+      --bg2: #12081d;
+      --panel: rgba(18, 10, 34, 0.9);
+      --border: rgba(168, 85, 247, 0.3);
+      --text: #f5f3ff;
+      --muted: #c4b5fd;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #fb7185;
+      --purple: #a855f7;
+      --purple2: #7c3aed;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 34%, rgba(168, 85, 247, 0.17) 0%, rgba(168, 85, 247, 0.04) 24%, transparent 46%),
+        radial-gradient(circle at 80% 0%, #1d1037 0%, transparent 35%),
+        radial-gradient(circle at 10% 100%, #12071f 0%, transparent 35%),
+        linear-gradient(180deg, var(--bg2), var(--bg1) 42%, var(--bg0));
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      border: 1px solid var(--border);
+      background: rgba(23, 13, 44, 0.78);
+      border-radius: 14px;
+      padding: 12px 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: .3px;
+    }
+
+    .title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    .links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    a.link {
+      text-decoration: none;
+      color: var(--text);
+      border: 1px solid rgba(168, 85, 247, .45);
+      border-radius: 10px;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 8px 10px;
+      background: linear-gradient(135deg, rgba(124, 58, 237, .45), rgba(168, 85, 247, .24));
+    }
+
+    .status {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(18, 10, 34, .85);
+      color: var(--muted);
+      padding: 9px 11px;
+      font-size: .84rem;
+    }
+
+    .status.ok { color: #86efac; border-color: rgba(52, 211, 153, .45); background: rgba(16, 24, 27, .85); }
+    .status.error { color: #fda4af; border-color: rgba(251, 113, 133, .45); background: rgba(33, 15, 25, .88); }
+
+    .hero {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(19, 10, 34, .9), rgba(9, 6, 16, .88));
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: -80px;
+      background:
+        radial-gradient(circle, rgba(168, 85, 247, .18) 0%, rgba(168, 85, 247, .06) 24%, transparent 40%);
+      filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .hero-top {
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .hero-top h2 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .hero-top .sub {
+      color: var(--muted);
+      font-size: .8rem;
+      margin-top: 3px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid rgba(168, 85, 247, .55);
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: #fff;
+      border-radius: 10px;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+
+    button.alt {
+      background: linear-gradient(135deg, rgba(88, 28, 135, .85), rgba(49, 11, 85, .88));
+    }
+
+    .blackhole-wrap {
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 190px;
+      position: relative;
+    }
+
+    .blackhole {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #000 0%, #000 38%, rgba(45, 11, 72, .95) 49%, rgba(102, 32, 173, .88) 58%, rgba(173, 109, 250, .54) 68%, rgba(182, 123, 255, .1) 75%, transparent 82%);
+      box-shadow:
+        0 0 40px rgba(168, 85, 247, .5),
+        0 0 80px rgba(168, 85, 247, .3),
+        inset 0 0 28px rgba(0, 0, 0, .95);
+      position: relative;
+      animation: pulse 3.8s ease-in-out infinite;
+    }
+
+    .blackhole::before {
+      content: "";
+      position: absolute;
+      inset: -26px;
+      border-radius: 50%;
+      border: 2px solid rgba(168, 85, 247, .45);
+      border-top-color: rgba(196, 181, 253, .95);
+      border-left-color: rgba(124, 58, 237, .9);
+      filter: blur(.2px);
+      animation: spin 6s linear infinite;
+    }
+
+    .blackhole::after {
+      content: "";
+      position: absolute;
+      inset: -44px;
+      border-radius: 50%;
+      border: 1px dashed rgba(196, 181, 253, .35);
+      animation: spin-rev 9s linear infinite;
+    }
+
+    .singularity {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #000;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 18px rgba(0, 0, 0, .95);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin-rev { to { transform: rotate(-360deg); } }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); filter: saturate(1); }
+      50% { transform: scale(1.045); filter: saturate(1.14); }
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      background: rgba(22, 12, 42, .86);
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 78px;
+    }
+
+    .card .k {
+      color: var(--muted);
+      font-size: .73rem;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .card .v {
+      margin-top: 6px;
+      font-size: 1.16rem;
+      font-weight: 760;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(17, 10, 31, .9);
+      padding: 12px;
+    }
+
+    .panel h3 {
+      margin: 0 0 8px;
+      font-size: .92rem;
+    }
+
+    .list {
+      display: grid;
+      gap: 7px;
+      max-height: 330px;
+      overflow: auto;
+    }
+
+    .row {
+      border: 1px solid rgba(168, 85, 247, .26);
+      background: rgba(12, 7, 23, .9);
+      border-radius: 10px;
+      padding: 9px;
+    }
+
+    .row-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .label {
+      font-size: .86rem;
+      font-weight: 700;
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: .78rem;
+      line-height: 1.34;
+    }
+
+    .pill {
+      border: 1px solid rgba(168, 85, 247, .4);
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: .64rem;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
+
+    .pill.ok { color: #86efac; border-color: rgba(52,211,153,.5); background: rgba(6, 24, 19, .9); }
+    .pill.warn { color: #fcd34d; border-color: rgba(251,191,36,.45); background: rgba(31, 22, 8, .9); }
+    .pill.error { color: #fda4af; border-color: rgba(251,113,133,.45); background: rgba(30, 10, 18, .9); }
+
+    pre {
+      margin: 0;
+      border: 1px solid rgba(168, 85, 247, .26);
+      border-radius: 10px;
+      padding: 10px;
+      background: #090510;
+      color: #e9d5ff;
+      font-size: .76rem;
+      white-space: pre-wrap;
+      max-height: 320px;
+      overflow: auto;
+    }
+
+    @media (max-width: 1100px) {
+      .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero { min-height: 220px; }
+      .blackhole { width: 138px; height: 138px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="header">
+      <div class="title">
+        <h1>Startup Results Observatory</h1>
+        <p>Purple/black live view for automation results and growth signals</p>
+      </div>
+      <div class="links">
+        <a class="link" href="/startup">Startup Engine</a>
+        <a class="link" href="/startup/mobile">Mobile</a>
+        <a class="link" href="/app">NexusAI App</a>
+      </div>
+    </section>
+
+    <div id="status" class="status">Loading startup telemetry...</div>
+
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h2>Core Results Feed</h2>
+          <div class="sub">Live loop outcomes, outreach state, and browser automation traces</div>
+        </div>
+        <div class="hero-actions">
+          <button id="runCheck">Run check</button>
+          <button id="runBrowser" class="alt">Run browser agent</button>
+          <button id="runCalling" class="alt">Run calling</button>
+          <button id="runOutreach" class="alt">Run outreach</button>
+          <button id="runAutoReply" class="alt">Run auto-reply</button>
+          <button id="runEnrich" class="alt">Enrich leads</button>
+        </div>
+      </div>
+      <div class="blackhole-wrap">
+        <div class="blackhole" aria-label="Animated black hole">
+          <div class="singularity"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="stats" class="cards"></section>
+
+    <section class="grid">
+      <article class="panel">
+        <h3>Loop Memory</h3>
+        <div id="loopMemory" class="list"></div>
+      </article>
+      <article class="panel">
+        <h3>Delivery Results</h3>
+        <div id="deliveries" class="list"></div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3>Lead Intelligence</h3>
+      <div id="leadIntel" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h3>Reply Inbox</h3>
+      <div id="replyInbox" class="list"></div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h3>System Checks</h3>
+        <div id="checks" class="list"></div>
+      </article>
+      <article class="panel">
+        <h3>Latest Code Runs</h3>
+        <div id="codeRuns" class="list"></div>
+      </article>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h3>Recent Logs</h3>
+        <div id="logs" class="list"></div>
+      </article>
+      <article class="panel">
+        <h3>Latest Browser Trace</h3>
+        <pre id="browserTrace">No trace yet.</pre>
+      </article>
+    </section>
+  </div>
+
+  <script>
+    let state = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function esc(v) {
+      return String(v ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function when(ts) { try { return ts ? new Date(ts).toLocaleString() : "n/a"; } catch { return "n/a"; } }
+    function money(v) { return "£" + Number(v || 0).toLocaleString(); }
+
+    function setStatus(msg, type) {
+      const el = $("status");
+      el.textContent = msg;
+      el.className = "status" + (type ? " " + type : "");
+    }
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `${res.status} ${res.statusText}`);
+      return body;
+    }
+
+    function renderStats() {
+      if (!state) return;
+      const s = state.stats || {};
+      const b = state.business || {};
+      const cards = [
+        ["Outreach sent", s.outreachSent || 0],
+        ["Replies", s.replies || 0],
+        ["Closed deals", s.closedDeals || 0],
+        ["MRR (USD)", "$" + Number(s.mrrUsd || 0).toLocaleString()],
+        ["Target (GBP)", money(b.monthlyTargetGbp || 1000)],
+        ["Clients needed", b.clientsNeeded || 0],
+      ];
+      $("stats").innerHTML = cards.map(([k, v]) => `<div class="card"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    }
+
+    function renderLoopMemory() {
+      const memory = state?.loopMemory || [];
+      $("loopMemory").innerHTML = memory.slice(0, 20).map((m) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(m.currentGoal || "Goal")}</div>
+            <span class="pill ${esc(m.status === "ok" ? "ok" : m.status === "warn" ? "warn" : "error")}">${esc(m.status || "n/a")}</span>
+          </div>
+          <div class="sub"><strong>Plan:</strong> ${esc(m.plan || "")}</div>
+          <div class="sub"><strong>Observed:</strong> ${esc(m.observation || "")}</div>
+          <div class="sub"><strong>Improve:</strong> ${esc(m.improvement || "")}</div>
+          <div class="sub">${esc(when(m.ts))}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No loop memory yet.</div></div>`;
+    }
+
+    function renderDeliveries() {
+      const deliveries = state?.deliveries || [];
+      $("deliveries").innerHTML = deliveries.slice(0, 24).map((d) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(d.leadEmail || d.leadPhone || "unknown")}</div>
+            <span class="pill ${esc(d.status === "sent" ? "ok" : "error")}">${esc(d.status || "unknown")}</span>
+          </div>
+          <div class="sub">${esc((d.kind || "outreach").toUpperCase())}</div>
+          <div class="sub">${esc(d.subject || "")}</div>
+          <div class="sub">${esc(d.provider || "")} | ${esc(when(d.ts))}</div>
+          ${d.error ? `<div class="sub" style="color:#fda4af;">${esc(d.error)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No delivery attempts yet.</div></div>`;
+    }
+
+    function renderReplyInbox() {
+      const replies = state?.repliesInbox || [];
+      $("replyInbox").innerHTML = replies.slice(0, 24).map((r) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(r.fromEmail || "unknown")}</div>
+            <span class="pill ${esc(r.autoReplyStatus === "sent" ? "ok" : r.autoReplyStatus === "failed" ? "error" : "warn")}">${esc(r.autoReplyStatus || "queued")}</span>
+          </div>
+          <div class="sub">${esc(r.subject || "(no subject)")}</div>
+          <div class="sub">${esc((r.text || "").slice(0, 260))}</div>
+          <div class="sub">${esc(when(r.ts))}</div>
+          ${r.autoReplyError ? `<div class="sub" style="color:#fda4af;">${esc(r.autoReplyError)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No replies captured yet.</div></div>`;
+    }
+
+    function renderLeadIntel() {
+      const leads = state?.leads || [];
+      $("leadIntel").innerHTML = leads.slice(0, 24).map((l) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(l.name || "Lead")}</div>
+            <span class="pill ${esc(l.status === "closed" ? "ok" : l.status === "responded" || l.status === "qualified" ? "warn" : "pending")}">${esc(l.status || "new")}</span>
+          </div>
+          <div class="sub">${esc(l.email || "")}${l.phone ? ` | ${esc(l.phone)}` : ""}</div>
+          <div class="sub">${l.hasWebsite === false ? "No website" : l.hasWebsite === true ? "Has website" : "Website unknown"}</div>
+          <div class="sub">${esc(l.reviewSummary || l.companyInfo || "No enrichment yet")}</div>
+          ${(l.avgRating || l.reviewCount) ? `<div class="sub">Rating: ${esc(l.avgRating || "n/a")} | Reviews: ${esc(l.reviewCount || "n/a")}</div>` : ""}
+          ${l.reviewSource ? `<div class="sub">Source: ${esc(l.reviewSource)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No leads yet.</div></div>`;
+    }
+
+    function renderChecks() {
+      const checks = state?.checks || [];
+      $("checks").innerHTML = checks.map((c) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(c.label)}</div>
+            <span class="pill ${esc(c.status === "ok" ? "ok" : c.status === "warn" ? "warn" : "error")}">${esc(c.status)}</span>
+          </div>
+          <div class="sub">${esc(c.detail || "")}</div>
+          <div class="sub">${esc(when(c.checkedAt))}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No checks yet.</div></div>`;
+    }
+
+    function renderCodeRuns() {
+      const runs = state?.codeRuns || [];
+      $("codeRuns").innerHTML = runs.slice(0, 14).map((r) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(r.language || "code")}</div>
+            <span class="pill ${esc(r.exitCode === 0 ? "ok" : "error")}">exit ${esc(r.exitCode)}</span>
+          </div>
+          <div class="sub">${esc((r.command || "").slice(0, 120))}</div>
+          <div class="sub">${esc(when(r.ts))}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No code runs yet.</div></div>`;
+    }
+
+    function renderLogs() {
+      const logs = state?.logs || [];
+      $("logs").innerHTML = logs.slice(0, 30).map((l) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc((l.level || "").toUpperCase())}</div>
+            <div class="sub">${esc(when(l.ts))}</div>
+          </div>
+          <div class="sub">${esc(l.msg || "")}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No logs yet.</div></div>`;
+    }
+
+    function renderBrowserTrace() {
+      const latest = (state?.loopMemory || [])[0];
+      $("browserTrace").textContent = latest?.browserAction ? JSON.stringify(latest.browserAction, null, 2) : "No trace yet.";
+    }
+
+    function renderAll() {
+      renderStats();
+      renderLoopMemory();
+      renderDeliveries();
+      renderLeadIntel();
+      renderReplyInbox();
+      renderChecks();
+      renderCodeRuns();
+      renderLogs();
+      renderBrowserTrace();
+    }
+
+    async function refresh(silent) {
+      try {
+        state = await api("/api/startup/state");
+        renderAll();
+        if (!silent) setStatus("Results synced: " + when(state.lastAuditAt), "ok");
+      } catch (err) {
+        setStatus("Failed to load results: " + err.message, "error");
+      }
+    }
+
+    $("runCheck").addEventListener("click", async () => {
+      try {
+        setStatus("Running automation check...", "");
+        await api("/api/startup/run-check", { method: "POST", body: JSON.stringify({ reason: "results-dashboard" }) });
+        await refresh(true);
+        setStatus("Check complete.", "ok");
+      } catch (err) {
+        setStatus("Check failed: " + err.message, "error");
+      }
+    });
+
+    $("runBrowser").addEventListener("click", async () => {
+      try {
+        setStatus("Running browser agent...", "");
+        await api("/api/startup/browser-agent/run", {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "results-dashboard-browser-run",
+            goal: `Reach £${Number(state?.business?.monthlyTargetGbp || 1000)}/month quickly`,
+            plan: "Gather fresh lead research and update loop memory",
+          }),
+        });
+        await refresh(true);
+        setStatus("Browser run complete.", "ok");
+      } catch (err) {
+        setStatus("Browser run failed: " + err.message, "error");
+      }
+    });
+
+    $("runCalling").addEventListener("click", async () => {
+      try {
+        setStatus("Running calling...", "");
+        await api("/api/startup/calling/run", { method: "POST", body: JSON.stringify({ reason: "results-dashboard-calling" }) });
+        await refresh(true);
+        setStatus("Calling run complete.", "ok");
+      } catch (err) {
+        setStatus("Calling run failed: " + err.message, "error");
+      }
+    });
+
+    $("runOutreach").addEventListener("click", async () => {
+      try {
+        setStatus("Running outreach...", "");
+        await api("/api/startup/outreach/send-now", { method: "POST", body: JSON.stringify({ reason: "results-dashboard-outreach" }) });
+        await refresh(true);
+        setStatus("Outreach run complete.", "ok");
+      } catch (err) {
+        setStatus("Outreach run failed: " + err.message, "error");
+      }
+    });
+
+    $("runAutoReply").addEventListener("click", async () => {
+      try {
+        setStatus("Running auto-reply...", "");
+        await api("/api/startup/replies/auto-run", { method: "POST", body: JSON.stringify({ reason: "results-dashboard-auto-reply" }) });
+        await refresh(true);
+        setStatus("Auto-reply run complete.", "ok");
+      } catch (err) {
+        setStatus("Auto-reply run failed: " + err.message, "error");
+      }
+    });
+
+    $("runEnrich").addEventListener("click", async () => {
+      try {
+        setStatus("Running lead enrichment...", "");
+        await api("/api/startup/leads/enrich", { method: "POST", body: JSON.stringify({ reason: "results-dashboard-enrich" }) });
+        await refresh(true);
+        setStatus("Lead enrichment complete.", "ok");
+      } catch (err) {
+        setStatus("Lead enrichment failed: " + err.message, "error");
+      }
+    });
+
+    refresh(false);
+    setInterval(() => refresh(true), 30000);
+  </script>
+</body>
+</html>

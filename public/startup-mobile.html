@@ -242,6 +242,12 @@
       gap: 6px;
     }
 
+    .outreach-actions {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
     pre {
       margin: 0;
       border: 1px solid var(--border);
@@ -264,14 +270,17 @@
         <div class="title">Startup Engine Mobile</div>
         <div class="subtitle">nexusais.app/startup/mobile</div>
       </div>
-      <a class="tiny-link" href="/startup">Desktop</a>
+      <div style="display:flex; gap:6px;">
+        <a class="tiny-link" href="/startup/results">Results</a>
+        <a class="tiny-link" href="/startup">Desktop</a>
+      </div>
     </div>
 
     <div id="status" class="status">Loading state...</div>
 
     <div class="actions">
       <button id="runCheck">Run check</button>
-      <button id="seedDemo" class="warn">Seed demo</button>
+      <button id="runBrowserQuick" class="warn">Run browser</button>
       <button id="genPlan" class="alt">Generate AI plan</button>
       <button id="saveSettings" class="alt">Save settings</button>
     </div>
@@ -299,6 +308,12 @@
         <form id="leadForm" class="form">
           <input id="leadName" placeholder="Lead name" required />
           <input id="leadEmail" type="email" placeholder="Lead email" required />
+          <input id="leadPhone" placeholder="Lead phone (optional)" />
+          <select id="leadHasWebsite">
+            <option value="">Website unknown</option>
+            <option value="false">No website</option>
+            <option value="true">Has website</option>
+          </select>
           <input id="leadNiche" placeholder="Niche (optional)" />
           <input id="leadValue" type="number" min="0" step="1" placeholder="Deal value USD" />
           <button type="submit">Add lead</button>
@@ -325,6 +340,129 @@
             <option value="false">Auto loop off</option>
           </select>
         </div>
+      </section>
+
+      <section class="panel">
+        <h2>Founder + browser agent</h2>
+        <div class="form" id="businessForm">
+          <input id="businessNiche" placeholder="Niche" />
+          <input id="businessOfferName" placeholder="Offer name" />
+          <input id="businessMonthlyTargetGbp" type="number" min="100" step="50" placeholder="Target £/month" />
+          <input id="businessMonthlyPriceGbp" type="number" min="50" step="10" placeholder="Monthly price £" />
+          <input id="businessSetupFeeGbp" type="number" min="0" step="10" placeholder="Setup fee £" />
+          <input id="businessClientsNeeded" type="number" min="1" step="1" placeholder="Clients needed" />
+          <textarea id="businessOfferSummary" placeholder="Offer summary"></textarea>
+          <select id="browserEnabled">
+            <option value="true">Browser agent enabled</option>
+            <option value="false">Browser agent disabled</option>
+          </select>
+          <select id="browserHeadless">
+            <option value="true">Headless on</option>
+            <option value="false">Headless off</option>
+          </select>
+          <select id="browserSearchEngine">
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="google">Google</option>
+            <option value="bing">Bing</option>
+          </select>
+          <input id="browserMaxActionsPerRun" type="number" min="5" max="40" placeholder="Max actions/run" />
+          <input id="browserHumanDelayMinMs" type="number" min="200" max="8000" placeholder="Min delay ms" />
+          <input id="browserHumanDelayMaxMs" type="number" min="200" max="12000" placeholder="Max delay ms" />
+          <select id="googlePlacesEnabled">
+            <option value="true">Google Places enabled</option>
+            <option value="false">Google Places disabled</option>
+          </select>
+          <input id="googlePlacesLocation" placeholder="Google Places location (e.g. London, UK)" />
+          <input id="googlePlacesMaxResults" type="number" min="1" max="20" placeholder="Google Places max results" />
+          <input id="googlePlacesApiKey" type="password" placeholder="Google Places API key (leave empty to keep)" />
+          <button id="saveBusiness" type="button" class="alt">Save founder + browser</button>
+          <button id="runBrowserAgentNow" type="button">Run browser agent now</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Loop memory</h2>
+        <div id="loopMemory"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Live calling (Vapi)</h2>
+        <div class="form" id="callingForm">
+          <select id="callingEnabled">
+            <option value="true">Calling enabled</option>
+            <option value="false">Calling disabled</option>
+          </select>
+          <input id="vapiAssistantId" placeholder="Vapi assistant ID" />
+          <input id="vapiPhoneNumberId" placeholder="Vapi phone number ID" />
+          <input id="vapiApiKey" type="password" placeholder="Vapi API key (leave empty to keep)" />
+          <input id="callingDefaultCountryCode" placeholder="Default country code (e.g. GB)" />
+          <input id="callingBatchSizePerRun" type="number" min="1" max="50" placeholder="Call batch size per run" />
+          <input id="callingMinMinutesBetweenCalls" type="number" min="0" max="60" placeholder="Minutes between calls" />
+          <input id="callingMinHoursBetweenCalls" type="number" min="1" max="720" placeholder="Min hours between calls" />
+          <select id="callingFallbackToEmailWhenNoPhone">
+            <option value="true">Email fallback enabled</option>
+            <option value="false">Email fallback disabled</option>
+          </select>
+          <textarea id="callingScriptTemplate" placeholder="Call script template"></textarea>
+          <button id="saveCalling" type="button" class="alt">Save calling config</button>
+        </div>
+        <div class="outreach-actions">
+          <button id="runCallingNow" type="button">Run calling now</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Live outreach (SMTP)</h2>
+        <div class="form" id="outreachForm">
+          <select id="outreachEnabled">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+          <input id="fromName" placeholder="From name" />
+          <input id="fromEmail" type="email" placeholder="From email" />
+          <input id="replyTo" type="email" placeholder="Reply-to (optional)" />
+          <input id="smtpHost" placeholder="SMTP host" />
+          <input id="smtpPort" type="number" min="1" max="65535" placeholder="SMTP port" />
+          <input id="smtpUser" placeholder="SMTP user/login" />
+          <input id="smtpPassword" type="password" placeholder="SMTP password (leave empty to keep)" />
+          <select id="smtpSecure">
+            <option value="false">TLS secure off</option>
+            <option value="true">TLS secure on</option>
+          </select>
+          <input id="batchSizePerRun" type="number" min="1" max="50" placeholder="Batch size per run" />
+          <input id="minMinutesBetweenSends" type="number" min="0" max="60" placeholder="Minutes between emails (e.g. 2)" />
+          <input id="minHoursBetweenMessages" type="number" min="1" max="720" placeholder="Min hours between messages" />
+          <select id="autoReplyEnabled">
+            <option value="true">Auto-reply enabled</option>
+            <option value="false">Auto-reply disabled</option>
+          </select>
+          <input id="autoReplyCooldownHours" type="number" min="1" max="168" placeholder="Auto-reply cooldown hours" />
+          <input id="autoReplySubjectTemplate" placeholder="Auto-reply subject (e.g. Re: {subject})" />
+          <input id="subjectTemplate" placeholder="Subject template (e.g. Quick idea for {business})" />
+          <textarea id="autoReplyTemplate" placeholder="Auto-reply body template"></textarea>
+          <button id="saveOutreach" type="button" class="alt">Save outreach config</button>
+        </div>
+        <div class="outreach-actions">
+          <button id="sendOutreachNow" type="button">Send outreach now</button>
+          <button id="runAutoReplyNow" type="button">Run auto-reply now</button>
+          <button id="enrichLeadsNow" type="button">Enrich lead reviews/info</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Reply inbox + intake</h2>
+        <div class="form" id="replyIntakeForm">
+          <input id="replyFromEmail" type="email" placeholder="Reply from email" />
+          <input id="replySubject" placeholder="Reply subject" />
+          <textarea id="replyText" placeholder="Reply message text"></textarea>
+          <button id="captureReply" type="button" class="alt">Capture reply + auto-reply</button>
+        </div>
+        <div id="replyInbox" style="margin-top:10px;"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Delivery logs</h2>
+        <div id="deliveries"></div>
       </section>
 
       <section class="panel">
@@ -421,7 +559,11 @@
           <div class="inline">
             <div>
               <div class="label">${esc(l.name)}</div>
-              <div class="sub">${esc(l.email)} | ${esc(money(l.valueUsd || 0))}</div>
+              <div class="sub">${esc(l.email)}${l.phone ? ` | ${esc(l.phone)}` : ""} | ${esc(money(l.valueUsd || 0))}</div>
+              <div class="sub">${l.hasWebsite === false ? "No website" : l.hasWebsite === true ? "Has website" : "Website unknown"}</div>
+              <div class="sub">${esc(l.reviewSummary || l.companyInfo || "No enrichment yet")}</div>
+              ${l.avgRating ? `<div class="sub">Rating: ${esc(String(l.avgRating))}${l.reviewCount ? ` (${esc(String(l.reviewCount))} reviews)` : ""}</div>` : ""}
+              ${l.reviewSource ? `<div class="sub">Source: ${esc(l.reviewSource)}</div>` : ""}
             </div>
             <select data-lead-status="${esc(l.id)}">
               ${LEAD_STATUSES.map((status) => `<option value="${status}" ${status === l.status ? "selected" : ""}>${status}</option>`).join("")}
@@ -444,6 +586,55 @@
       `).join("") || `<div class="row"><div class="sub">No logs yet.</div></div>`;
     }
 
+    function renderDeliveries() {
+      const deliveries = state?.deliveries || [];
+      $("deliveries").innerHTML = deliveries.slice(0, 24).map((d) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(d.leadEmail || d.leadPhone || "unknown")}</div>
+            <span class="pill ${esc(d.status === "sent" ? "ok" : "error")}">${esc(d.status || "unknown")}</span>
+          </div>
+          <div class="sub">${esc((d.kind || "outreach").toUpperCase())}</div>
+          <div class="sub">${esc(d.subject || "")}</div>
+          <div class="sub">${esc(d.provider || "")} | ${esc(when(d.ts))}</div>
+          ${d.error ? `<div class="sub" style="color:#fca5a5;">${esc(d.error)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No delivery attempts yet.</div></div>`;
+    }
+
+    function renderReplyInbox() {
+      const replies = state?.repliesInbox || [];
+      $("replyInbox").innerHTML = replies.slice(0, 20).map((r) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(r.fromEmail || "unknown")}</div>
+            <span class="pill ${esc(r.autoReplyStatus === "sent" ? "ok" : r.autoReplyStatus === "failed" ? "error" : "warn")}">${esc(r.autoReplyStatus || "queued")}</span>
+          </div>
+          <div class="sub">${esc(r.subject || "(no subject)")}</div>
+          <div class="sub">${esc((r.text || "").slice(0, 220))}</div>
+          <div class="sub">${esc(when(r.ts))}</div>
+          ${r.autoReplyError ? `<div class="sub" style="color:#fca5a5;">${esc(r.autoReplyError)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No captured replies yet.</div></div>`;
+    }
+
+    function renderLoopMemory() {
+      const memory = state?.loopMemory || [];
+      $("loopMemory").innerHTML = memory.slice(0, 16).map((m) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${esc(m.currentGoal || "goal")}</div>
+            <span class="pill ${esc(m.status === "ok" ? "ok" : m.status === "warn" ? "warn" : "error")}">${esc(m.status || "n/a")}</span>
+          </div>
+          <div class="sub"><strong>Plan:</strong> ${esc(m.plan || "")}</div>
+          <div class="sub"><strong>Action:</strong> ${esc(m.action || "")}</div>
+          <div class="sub"><strong>Expected:</strong> ${esc(m.expectedResult || "")}</div>
+          <div class="sub"><strong>Observed:</strong> ${esc(m.observation || "")}</div>
+          <div class="sub"><strong>Improve:</strong> ${esc(m.improvement || "")}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No loop memory entries yet.</div></div>`;
+    }
+
     function renderPlan() { $("planOut").textContent = planText || "No plan generated yet."; }
 
     function renderSettings() {
@@ -456,6 +647,54 @@
       $("scaleUsd").value = state.pricingUsd?.scale ?? 0;
       $("intervalMins").value = state.automationIntervalMinutes || 10;
       $("loopEnabled").value = String(Boolean(state.autoLoopEnabled));
+      const calling = state.calling || {};
+      $("callingEnabled").value = String(calling.enabled !== false);
+      $("vapiAssistantId").value = calling.vapiAssistantId || "";
+      $("vapiPhoneNumberId").value = calling.vapiPhoneNumberId || "";
+      $("vapiApiKey").value = "";
+      $("callingDefaultCountryCode").value = calling.defaultCountryCode || "GB";
+      $("callingBatchSizePerRun").value = calling.batchSizePerRun || 5;
+      $("callingMinMinutesBetweenCalls").value = Number.isFinite(calling.minMinutesBetweenCalls) ? calling.minMinutesBetweenCalls : 2;
+      $("callingMinHoursBetweenCalls").value = calling.minHoursBetweenCalls || 24;
+      $("callingFallbackToEmailWhenNoPhone").value = String(calling.fallbackToEmailWhenNoPhone !== false);
+      $("callingScriptTemplate").value = calling.scriptTemplate || "";
+      const outreach = state.outreach || {};
+      $("outreachEnabled").value = String(Boolean(outreach.enabled));
+      $("fromName").value = outreach.fromName || "";
+      $("fromEmail").value = outreach.fromEmail || "";
+      $("replyTo").value = outreach.replyTo || "";
+      $("smtpHost").value = outreach.smtpHost || "";
+      $("smtpPort").value = outreach.smtpPort || 587;
+      $("smtpUser").value = outreach.smtpUser || "";
+      $("smtpPassword").value = "";
+      $("smtpSecure").value = String(Boolean(outreach.smtpSecure));
+      $("batchSizePerRun").value = outreach.batchSizePerRun || 5;
+      $("minMinutesBetweenSends").value = Number.isFinite(outreach.minMinutesBetweenSends) ? outreach.minMinutesBetweenSends : 2;
+      $("minHoursBetweenMessages").value = outreach.minHoursBetweenMessages || 24;
+      $("subjectTemplate").value = outreach.subjectTemplate || "Quick idea for {business}";
+      $("autoReplyEnabled").value = String(outreach.autoReplyEnabled !== false);
+      $("autoReplyCooldownHours").value = outreach.autoReplyCooldownHours || 12;
+      $("autoReplySubjectTemplate").value = outreach.autoReplySubjectTemplate || "Re: {subject}";
+      $("autoReplyTemplate").value = outreach.autoReplyTemplate || "";
+      const business = state.business || {};
+      const browser = state.browserAgent || {};
+      $("businessNiche").value = business.niche || "";
+      $("businessOfferName").value = business.offerName || "";
+      $("businessMonthlyTargetGbp").value = business.monthlyTargetGbp || 1000;
+      $("businessMonthlyPriceGbp").value = business.monthlyPriceGbp || 299;
+      $("businessSetupFeeGbp").value = business.setupFeeGbp || 199;
+      $("businessClientsNeeded").value = business.clientsNeeded || 4;
+      $("businessOfferSummary").value = business.offerSummary || "";
+      $("browserEnabled").value = String(Boolean(browser.enabled));
+      $("browserHeadless").value = String(Boolean(browser.headless));
+      $("browserSearchEngine").value = browser.searchEngine || "duckduckgo";
+      $("browserMaxActionsPerRun").value = browser.maxActionsPerRun || 20;
+      $("browserHumanDelayMinMs").value = browser.humanDelayMinMs || 900;
+      $("browserHumanDelayMaxMs").value = browser.humanDelayMaxMs || 2200;
+      $("googlePlacesEnabled").value = String(Boolean(browser.googlePlacesEnabled));
+      $("googlePlacesLocation").value = browser.googlePlacesLocation || "London, UK";
+      $("googlePlacesMaxResults").value = browser.googlePlacesMaxResults || 8;
+      $("googlePlacesApiKey").value = "";
     }
 
     function renderAll() {
@@ -464,6 +703,9 @@
       renderTasks();
       renderLeads();
       renderLogs();
+      renderDeliveries();
+      renderReplyInbox();
+      renderLoopMemory();
       renderSettings();
       renderPlan();
     }
@@ -509,14 +751,21 @@
       }
     });
 
-    $("seedDemo").addEventListener("click", async () => {
+    $("runBrowserQuick").addEventListener("click", async () => {
       try {
-        setStatus("Seeding demo...", "");
-        await api("/api/startup/seed", { method: "POST", body: "{}" });
+        setStatus("Running browser agent...", "");
+        await api("/api/startup/browser-agent/run", {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "mobile-quick-browser-run",
+            goal: `Reach £${Number($("businessMonthlyTargetGbp").value || 1000)}/month fast`,
+            plan: "Find real niche leads and extract public contact opportunities",
+          }),
+        });
         await refresh(true);
-        setStatus("Demo seeded.", "ok");
+        setStatus("Browser run completed.", "ok");
       } catch (err) {
-        setStatus("Seed failed: " + err.message, "error");
+        setStatus("Browser run failed: " + err.message, "error");
       }
     });
 
@@ -547,6 +796,199 @@
       }
     });
 
+    $("saveOutreach").addEventListener("click", async () => {
+      try {
+        setStatus("Saving outreach config...", "");
+        const smtpPassword = $("smtpPassword").value;
+        await api("/api/startup/outreach/config", {
+          method: "POST",
+          body: JSON.stringify({
+            enabled: $("outreachEnabled").value === "true",
+            fromName: $("fromName").value.trim(),
+            fromEmail: $("fromEmail").value.trim(),
+            replyTo: $("replyTo").value.trim(),
+            smtpHost: $("smtpHost").value.trim(),
+            smtpPort: Number($("smtpPort").value || 587),
+            smtpUser: $("smtpUser").value.trim(),
+            smtpSecure: $("smtpSecure").value === "true",
+            batchSizePerRun: Number($("batchSizePerRun").value || 5),
+            minMinutesBetweenSends: Number($("minMinutesBetweenSends").value || 2),
+            minHoursBetweenMessages: Number($("minHoursBetweenMessages").value || 24),
+            subjectTemplate: $("subjectTemplate").value.trim(),
+            autoReplyEnabled: $("autoReplyEnabled").value === "true",
+            autoReplyCooldownHours: Number($("autoReplyCooldownHours").value || 12),
+            autoReplySubjectTemplate: $("autoReplySubjectTemplate").value.trim(),
+            autoReplyTemplate: $("autoReplyTemplate").value.trim(),
+            ...(smtpPassword ? { smtpPassword } : {}),
+          }),
+        });
+        $("smtpPassword").value = "";
+        await refresh(true);
+        setStatus("Outreach config saved.", "ok");
+      } catch (err) {
+        setStatus("Outreach config failed: " + err.message, "error");
+      }
+    });
+
+    $("saveCalling").addEventListener("click", async () => {
+      try {
+        setStatus("Saving calling config...", "");
+        const vapiApiKey = $("vapiApiKey").value;
+        await api("/api/startup/calling/config", {
+          method: "POST",
+          body: JSON.stringify({
+            enabled: $("callingEnabled").value === "true",
+            vapiAssistantId: $("vapiAssistantId").value.trim(),
+            vapiPhoneNumberId: $("vapiPhoneNumberId").value.trim(),
+            defaultCountryCode: $("callingDefaultCountryCode").value.trim(),
+            batchSizePerRun: Number($("callingBatchSizePerRun").value || 5),
+            minMinutesBetweenCalls: Number($("callingMinMinutesBetweenCalls").value || 2),
+            minHoursBetweenCalls: Number($("callingMinHoursBetweenCalls").value || 24),
+            fallbackToEmailWhenNoPhone: $("callingFallbackToEmailWhenNoPhone").value === "true",
+            scriptTemplate: $("callingScriptTemplate").value.trim(),
+            ...(vapiApiKey ? { vapiApiKey } : {}),
+          }),
+        });
+        $("vapiApiKey").value = "";
+        await refresh(true);
+        setStatus("Calling config saved.", "ok");
+      } catch (err) {
+        setStatus("Calling config failed: " + err.message, "error");
+      }
+    });
+
+    $("saveBusiness").addEventListener("click", async () => {
+      try {
+        setStatus("Saving founder + browser settings...", "");
+        await api("/api/startup/state", {
+          method: "POST",
+          body: JSON.stringify({
+            business: {
+              niche: $("businessNiche").value.trim(),
+              offerName: $("businessOfferName").value.trim(),
+              monthlyTargetGbp: Number($("businessMonthlyTargetGbp").value || 1000),
+              monthlyPriceGbp: Number($("businessMonthlyPriceGbp").value || 299),
+              setupFeeGbp: Number($("businessSetupFeeGbp").value || 199),
+              clientsNeeded: Number($("businessClientsNeeded").value || 4),
+              offerSummary: $("businessOfferSummary").value.trim(),
+            },
+            browserAgent: {
+              enabled: $("browserEnabled").value === "true",
+              headless: $("browserHeadless").value === "true",
+              searchEngine: $("browserSearchEngine").value,
+              maxActionsPerRun: Number($("browserMaxActionsPerRun").value || 20),
+              humanDelayMinMs: Number($("browserHumanDelayMinMs").value || 900),
+              humanDelayMaxMs: Number($("browserHumanDelayMaxMs").value || 2200),
+              googlePlacesEnabled: $("googlePlacesEnabled").value === "true",
+              googlePlacesLocation: $("googlePlacesLocation").value.trim(),
+              googlePlacesMaxResults: Number($("googlePlacesMaxResults").value || 8),
+              ...($("googlePlacesApiKey").value.trim() ? { googlePlacesApiKey: $("googlePlacesApiKey").value.trim() } : {}),
+            },
+          }),
+        });
+        $("googlePlacesApiKey").value = "";
+        await refresh(true);
+        setStatus("Founder + browser settings saved.", "ok");
+      } catch (err) {
+        setStatus("Founder + browser save failed: " + err.message, "error");
+      }
+    });
+
+    $("runBrowserAgentNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running browser agent...", "");
+        await api("/api/startup/browser-agent/run", {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "mobile-manual-browser-run",
+            goal: `Reach £${Number($("businessMonthlyTargetGbp").value || 1000)}/month fast`,
+            plan: "Research local trade leads, extract public contact opportunities, and enrich each lead with review and business info",
+          }),
+        });
+        await refresh(true);
+        setStatus("Browser agent run completed.", "ok");
+      } catch (err) {
+        setStatus("Browser agent run failed: " + err.message, "error");
+      }
+    });
+
+    $("runCallingNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running calling now...", "");
+        await api("/api/startup/calling/run", {
+          method: "POST",
+          body: JSON.stringify({ reason: "mobile-manual-calling" }),
+        });
+        await refresh(true);
+        setStatus("Calling run completed.", "ok");
+      } catch (err) {
+        setStatus("Calling run failed: " + err.message, "error");
+      }
+    });
+
+    $("sendOutreachNow").addEventListener("click", async () => {
+      try {
+        setStatus("Sending outreach now...", "");
+        await api("/api/startup/outreach/send-now", {
+          method: "POST",
+          body: JSON.stringify({ reason: "mobile-send-now" }),
+        });
+        await refresh(true);
+        setStatus("Outreach run completed.", "ok");
+      } catch (err) {
+        setStatus("Outreach run failed: " + err.message, "error");
+      }
+    });
+
+    $("runAutoReplyNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running auto-reply...", "");
+        await api("/api/startup/replies/auto-run", {
+          method: "POST",
+          body: JSON.stringify({ reason: "mobile-manual-auto-reply" }),
+        });
+        await refresh(true);
+        setStatus("Auto-reply run completed.", "ok");
+      } catch (err) {
+        setStatus("Auto-reply run failed: " + err.message, "error");
+      }
+    });
+
+    $("enrichLeadsNow").addEventListener("click", async () => {
+      try {
+        setStatus("Enriching lead reviews/info...", "");
+        await api("/api/startup/leads/enrich", {
+          method: "POST",
+          body: JSON.stringify({ reason: "mobile-manual-enrich" }),
+        });
+        await refresh(true);
+        setStatus("Lead enrichment completed.", "ok");
+      } catch (err) {
+        setStatus("Lead enrichment failed: " + err.message, "error");
+      }
+    });
+
+    $("captureReply").addEventListener("click", async () => {
+      try {
+        setStatus("Capturing reply + auto-reply...", "");
+        await api("/api/startup/replies/intake", {
+          method: "POST",
+          body: JSON.stringify({
+            fromEmail: $("replyFromEmail").value.trim(),
+            subject: $("replySubject").value.trim(),
+            text: $("replyText").value.trim(),
+          }),
+        });
+        $("replyFromEmail").value = "";
+        $("replySubject").value = "";
+        $("replyText").value = "";
+        await refresh(true);
+        setStatus("Reply captured and auto-reply processed.", "ok");
+      } catch (err) {
+        setStatus("Reply intake failed: " + err.message, "error");
+      }
+    });
+
     $("leadForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
@@ -556,12 +998,16 @@
           body: JSON.stringify({
             name: $("leadName").value.trim(),
             email: $("leadEmail").value.trim(),
+            phone: $("leadPhone").value.trim(),
+            hasWebsite: $("leadHasWebsite").value ? $("leadHasWebsite").value === "true" : undefined,
             niche: $("leadNiche").value.trim(),
             valueUsd: Number($("leadValue").value || 0),
           }),
         });
         $("leadName").value = "";
         $("leadEmail").value = "";
+        $("leadPhone").value = "";
+        $("leadHasWebsite").value = "";
         $("leadNiche").value = "";
         $("leadValue").value = "";
         await refresh(true);

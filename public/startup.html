@@ -237,7 +237,7 @@
       align-items: center;
     }
 
-    .lead-form, .settings {
+    .lead-form, .settings, .outreach-form {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
@@ -261,7 +261,28 @@
       grid-template-columns: repeat(6, minmax(0, 1fr));
     }
 
-    .settings .full {
+    .settings .full, .outreach-form .full {
+      grid-column: span 2;
+    }
+
+    .outreach-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .outreach-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .business-form {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .business-form .full {
       grid-column: span 2;
     }
 
@@ -284,14 +305,14 @@
       .toolbar { grid-template-columns: 1fr 1fr; }
       .grid-2 { grid-template-columns: 1fr; }
       .lead-form { grid-template-columns: 1fr 1fr; }
-      .settings { grid-template-columns: 1fr 1fr; }
-      .settings .full { grid-column: span 2; }
+      .settings, .outreach-form, .business-form { grid-template-columns: 1fr 1fr; }
+      .settings .full, .outreach-form .full, .business-form .full { grid-column: span 2; }
     }
 
     @media (max-width: 640px) {
       .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .lead-form, .settings, .toolbar { grid-template-columns: 1fr; }
-      .settings .full { grid-column: span 1; }
+      .lead-form, .settings, .outreach-form, .business-form, .toolbar { grid-template-columns: 1fr; }
+      .settings .full, .outreach-form .full, .business-form .full { grid-column: span 1; }
     }
   </style>
 </head>
@@ -304,6 +325,7 @@
       </div>
       <div class="links">
         <a class="link" href="/startup/mobile">Open mobile view</a>
+        <a class="link" href="/startup/results">Results dashboard</a>
         <a class="link" href="/app">Open NexusAI app</a>
       </div>
     </section>
@@ -311,7 +333,7 @@
     <section class="panel toolbar">
       <input id="objective" value="Generate today's high-impact revenue plan." />
       <button id="runCheck">Run check</button>
-      <button id="seedDemo" class="warn">Seed demo</button>
+      <button id="runBrowserQuick" class="warn">Run browser</button>
       <button id="genPlan" class="secondary">AI plan</button>
     </section>
 
@@ -335,6 +357,12 @@
       <form id="leadForm" class="lead-form">
         <input id="leadName" placeholder="Lead name" required />
         <input id="leadEmail" type="email" placeholder="Lead email" required />
+        <input id="leadPhone" placeholder="Lead phone (optional, E.164 or local)" />
+        <select id="leadHasWebsite">
+          <option value="">Website unknown</option>
+          <option value="false">No website</option>
+          <option value="true">Has website</option>
+        </select>
         <input id="leadNiche" placeholder="Niche (optional)" />
         <input id="leadValue" type="number" min="0" step="1" placeholder="Deal value USD" />
         <button type="submit">Add lead</button>
@@ -358,6 +386,113 @@
         </select>
         <button type="submit">Save settings</button>
       </form>
+    </section>
+
+    <section class="panel">
+      <div class="title-row"><h2>Founder plan + browser agent</h2><span class="sub">Niche, offer, loop memory, and human-like browser config</span></div>
+      <form id="businessForm" class="business-form">
+        <input id="businessNiche" class="full" placeholder="Niche (single niche only)" />
+        <input id="businessOfferName" class="full" placeholder="Offer name" />
+        <input id="businessMonthlyTargetGbp" type="number" min="100" step="50" placeholder="Target £/month" />
+        <input id="businessMonthlyPriceGbp" type="number" min="50" step="10" placeholder="Monthly price £" />
+        <input id="businessSetupFeeGbp" type="number" min="0" step="10" placeholder="Setup fee £" />
+        <input id="businessClientsNeeded" type="number" min="1" step="1" placeholder="Clients needed" />
+        <input id="browserEnabled" placeholder="Browser enabled (true/false)" />
+        <input id="browserHeadless" placeholder="Headless (true/false)" />
+        <input id="browserSearchEngine" placeholder="Search engine: duckduckgo/google/bing" />
+        <input id="browserMaxActionsPerRun" type="number" min="5" max="40" placeholder="Max actions per run" />
+        <input id="browserHumanDelayMinMs" type="number" min="200" max="8000" placeholder="Min delay ms" />
+        <input id="browserHumanDelayMaxMs" type="number" min="200" max="12000" placeholder="Max delay ms" />
+        <select id="googlePlacesEnabled">
+          <option value="true">Google Places enabled</option>
+          <option value="false">Google Places disabled</option>
+        </select>
+        <input id="googlePlacesLocation" placeholder="Google Places location (e.g. London, UK)" />
+        <input id="googlePlacesMaxResults" type="number" min="1" max="20" placeholder="Google Places max results" />
+        <input id="googlePlacesApiKey" type="password" class="full" placeholder="Google Places API key (leave empty to keep)" />
+        <input id="businessOfferSummary" class="full" placeholder="Offer summary" />
+        <button type="submit">Save founder+browser settings</button>
+      </form>
+      <div class="outreach-actions">
+        <button id="runBrowserAgentNow" type="button" class="secondary">Run browser agent now</button>
+      </div>
+      <div id="loopMemory" class="list" style="margin-top:10px;"></div>
+    </section>
+
+      <section class="panel">
+        <div class="title-row"><h2>Live calling (Vapi)</h2><span class="sub">Call leads first, then email fallback when phone missing</span></div>
+        <form id="callingForm" class="outreach-form">
+          <select id="callingEnabled" class="full">
+            <option value="true">Calling enabled</option>
+            <option value="false">Calling disabled</option>
+          </select>
+          <input id="vapiAssistantId" class="full" placeholder="Vapi assistant ID" />
+          <input id="vapiPhoneNumberId" class="full" placeholder="Vapi phone number ID" />
+          <input id="vapiApiKey" type="password" class="full" placeholder="Vapi API key (leave empty to keep)" />
+          <input id="callingDefaultCountryCode" placeholder="Default country code (e.g. GB)" />
+          <input id="callingBatchSizePerRun" type="number" min="1" max="50" placeholder="Call batch size per run" />
+          <input id="callingMinMinutesBetweenCalls" type="number" min="0" max="60" placeholder="Minutes between calls" />
+          <input id="callingMinHoursBetweenCalls" type="number" min="1" max="720" placeholder="Min hours between calls to same lead" />
+          <select id="callingFallbackToEmailWhenNoPhone">
+            <option value="true">Email fallback enabled</option>
+            <option value="false">Email fallback disabled</option>
+          </select>
+          <textarea id="callingScriptTemplate" class="full" placeholder="Call script template"></textarea>
+          <button id="saveCalling" type="button">Save calling config</button>
+        </form>
+        <div class="outreach-actions">
+          <button id="runCallingNow" type="button">Run calling now</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="title-row"><h2>Live outreach (SMTP)</h2><span class="sub">Real emails, no simulated counter</span></div>
+        <form id="outreachForm" class="outreach-form">
+        <select id="outreachEnabled" class="full">
+          <option value="true">Outreach enabled</option>
+          <option value="false">Outreach disabled</option>
+        </select>
+        <input id="fromName" placeholder="From name" />
+        <input id="fromEmail" type="email" placeholder="From email" />
+        <input id="replyTo" type="email" placeholder="Reply-to (optional)" />
+        <input id="smtpHost" placeholder="SMTP host" />
+        <input id="smtpPort" type="number" min="1" max="65535" placeholder="SMTP port" />
+        <input id="smtpUser" placeholder="SMTP user/login" />
+        <input id="smtpPassword" type="password" placeholder="SMTP password (leave empty to keep)" />
+        <select id="smtpSecure">
+          <option value="false">TLS secure off</option>
+          <option value="true">TLS secure on</option>
+        </select>
+        <input id="batchSizePerRun" type="number" min="1" max="50" placeholder="Batch size per run" />
+        <input id="minMinutesBetweenSends" type="number" min="0" max="60" placeholder="Minutes between emails (e.g. 2)" />
+        <input id="minHoursBetweenMessages" type="number" min="1" max="720" placeholder="Min hours between messages" />
+        <select id="autoReplyEnabled">
+          <option value="true">Auto-reply enabled</option>
+          <option value="false">Auto-reply disabled</option>
+        </select>
+        <input id="autoReplyCooldownHours" type="number" min="1" max="168" placeholder="Auto-reply cooldown hours" />
+        <input id="autoReplySubjectTemplate" placeholder="Auto-reply subject (e.g. Re: {subject})" />
+        <input id="subjectTemplate" class="full" placeholder="Subject template (e.g. Quick idea for {business})" />
+        <textarea id="autoReplyTemplate" class="full" placeholder="Auto-reply body template"></textarea>
+        <button type="submit">Save outreach config</button>
+      </form>
+      <div class="outreach-actions">
+        <button id="sendOutreachNow" type="button">Send outreach now</button>
+        <button id="runAutoReplyNow" type="button" class="secondary">Run auto-reply now</button>
+        <button id="enrichLeadsNow" type="button" class="secondary">Enrich lead reviews/info</button>
+      </div>
+      <div id="deliveries" class="list" style="margin-top: 10px;"></div>
+    </section>
+
+    <section class="panel">
+      <div class="title-row"><h2>Reply inbox + intake</h2><span class="sub">Capture replies and trigger automatic follow-up</span></div>
+      <form id="replyIntakeForm" class="outreach-form">
+        <input id="replyFromEmail" type="email" placeholder="Reply from email" required />
+        <input id="replySubject" placeholder="Reply subject" />
+        <textarea id="replyText" class="full" placeholder="Reply message text" required></textarea>
+        <button type="submit">Capture reply + auto-reply</button>
+      </form>
+      <div id="replyInbox" class="list" style="margin-top: 10px;"></div>
     </section>
 
     <section class="grid-2">
@@ -464,7 +599,11 @@
           <div class="split">
             <div>
               <div class="label">${escapeHtml(l.name)}</div>
-              <div class="sub">${escapeHtml(l.email)} | ${escapeHtml(l.niche)} | ${escapeHtml(money(l.valueUsd || 0))}</div>
+              <div class="sub">${escapeHtml(l.email)}${l.phone ? ` | ${escapeHtml(l.phone)}` : ""} | ${escapeHtml(l.niche)} | ${escapeHtml(money(l.valueUsd || 0))}</div>
+              <div class="sub">${l.hasWebsite === false ? "No website" : l.hasWebsite === true ? "Has website" : "Website unknown"}</div>
+              <div class="sub">${escapeHtml(l.reviewSummary || l.companyInfo || "No enrichment yet")}</div>
+              ${l.avgRating ? `<div class="sub">Rating: ${escapeHtml(String(l.avgRating))}${l.reviewCount ? ` (${escapeHtml(String(l.reviewCount))} reviews)` : ""}</div>` : ""}
+              ${l.reviewSource ? `<div class="sub">Source: ${escapeHtml(l.reviewSource)}</div>` : ""}
             </div>
             <select data-lead-status="${escapeHtml(l.id)}">
               ${LEAD_STATUSES.map((status) => `<option value="${status}" ${status === l.status ? "selected" : ""}>${status}</option>`).join("")}
@@ -487,6 +626,56 @@
       `).join("") || `<div class="row"><div class="sub">No logs yet.</div></div>`;
     }
 
+    function renderDeliveries() {
+      const deliveries = state?.deliveries || [];
+      $("deliveries").innerHTML = deliveries.slice(0, 30).map((d) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(d.leadEmail || d.leadPhone || "unknown")}</div>
+            <span class="pill ${escapeHtml(d.status === "sent" ? "ok" : "error")}">${escapeHtml(d.status || "unknown")}</span>
+          </div>
+          <div class="sub">${escapeHtml((d.kind || "outreach").toUpperCase())}</div>
+          <div class="sub">${escapeHtml(d.subject || "")}</div>
+          <div class="sub">${escapeHtml(d.provider || "")} | ${escapeHtml(when(d.ts))}</div>
+          ${d.error ? `<div class="sub" style="color:#fca5a5;">${escapeHtml(d.error)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No delivery attempts yet.</div></div>`;
+    }
+
+    function renderReplyInbox() {
+      const replies = state?.repliesInbox || [];
+      $("replyInbox").innerHTML = replies.slice(0, 20).map((r) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(r.fromEmail || "unknown")}</div>
+            <span class="pill ${escapeHtml(r.autoReplyStatus === "sent" ? "ok" : r.autoReplyStatus === "failed" ? "error" : "warn")}">${escapeHtml(r.autoReplyStatus || "queued")}</span>
+          </div>
+          <div class="sub">${escapeHtml(r.subject || "(no subject)")}</div>
+          <div class="sub">${escapeHtml((r.text || "").slice(0, 220))}</div>
+          <div class="sub">${escapeHtml(when(r.ts))}</div>
+          ${r.autoReplyError ? `<div class="sub" style="color:#fca5a5;">${escapeHtml(r.autoReplyError)}</div>` : ""}
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No captured replies yet.</div></div>`;
+    }
+
+    function renderLoopMemory() {
+      const memory = state?.loopMemory || [];
+      $("loopMemory").innerHTML = memory.slice(0, 20).map((m) => `
+        <div class="row">
+          <div class="row-head">
+            <div class="label">${escapeHtml(m.currentGoal || "goal")}</div>
+            <span class="pill ${escapeHtml(m.status === "ok" ? "ok" : m.status === "warn" ? "warn" : "error")}">${escapeHtml(m.status || "n/a")}</span>
+          </div>
+          <div class="sub"><strong>Plan:</strong> ${escapeHtml(m.plan || "")}</div>
+          <div class="sub"><strong>Action:</strong> ${escapeHtml(m.action || "")}</div>
+          <div class="sub"><strong>Expected:</strong> ${escapeHtml(m.expectedResult || "")}</div>
+          <div class="sub"><strong>Observed:</strong> ${escapeHtml(m.observation || "")}</div>
+          <div class="sub"><strong>Improve:</strong> ${escapeHtml(m.improvement || "")}</div>
+          <div class="sub">${escapeHtml(when(m.ts))}</div>
+        </div>
+      `).join("") || `<div class="row"><div class="sub">No loop memory entries yet.</div></div>`;
+    }
+
     function renderPlan() {
       $("planOut").textContent = planText || "No plan generated yet.";
     }
@@ -501,6 +690,54 @@
       $("scaleUsd").value = state.pricingUsd?.scale ?? 0;
       $("intervalMins").value = state.automationIntervalMinutes || 10;
       $("loopEnabled").value = String(Boolean(state.autoLoopEnabled));
+      const calling = state.calling || {};
+      $("callingEnabled").value = String(calling.enabled !== false);
+      $("vapiAssistantId").value = calling.vapiAssistantId || "";
+      $("vapiPhoneNumberId").value = calling.vapiPhoneNumberId || "";
+      $("vapiApiKey").value = "";
+      $("callingDefaultCountryCode").value = calling.defaultCountryCode || "GB";
+      $("callingBatchSizePerRun").value = calling.batchSizePerRun || 5;
+      $("callingMinMinutesBetweenCalls").value = Number.isFinite(calling.minMinutesBetweenCalls) ? calling.minMinutesBetweenCalls : 2;
+      $("callingMinHoursBetweenCalls").value = calling.minHoursBetweenCalls || 24;
+      $("callingFallbackToEmailWhenNoPhone").value = String(calling.fallbackToEmailWhenNoPhone !== false);
+      $("callingScriptTemplate").value = calling.scriptTemplate || "";
+      const outreach = state.outreach || {};
+      $("outreachEnabled").value = String(Boolean(outreach.enabled));
+      $("fromName").value = outreach.fromName || "";
+      $("fromEmail").value = outreach.fromEmail || "";
+      $("replyTo").value = outreach.replyTo || "";
+      $("smtpHost").value = outreach.smtpHost || "";
+      $("smtpPort").value = outreach.smtpPort || 587;
+      $("smtpUser").value = outreach.smtpUser || "";
+      $("smtpPassword").value = "";
+      $("smtpSecure").value = String(Boolean(outreach.smtpSecure));
+      $("batchSizePerRun").value = outreach.batchSizePerRun || 5;
+      $("minMinutesBetweenSends").value = Number.isFinite(outreach.minMinutesBetweenSends) ? outreach.minMinutesBetweenSends : 2;
+      $("minHoursBetweenMessages").value = outreach.minHoursBetweenMessages || 24;
+      $("subjectTemplate").value = outreach.subjectTemplate || "Quick idea for {business}";
+      $("autoReplyEnabled").value = String(outreach.autoReplyEnabled !== false);
+      $("autoReplyCooldownHours").value = outreach.autoReplyCooldownHours || 12;
+      $("autoReplySubjectTemplate").value = outreach.autoReplySubjectTemplate || "Re: {subject}";
+      $("autoReplyTemplate").value = outreach.autoReplyTemplate || "";
+      const business = state.business || {};
+      const browser = state.browserAgent || {};
+      $("businessNiche").value = business.niche || "";
+      $("businessOfferName").value = business.offerName || "";
+      $("businessMonthlyTargetGbp").value = business.monthlyTargetGbp || 1000;
+      $("businessMonthlyPriceGbp").value = business.monthlyPriceGbp || 299;
+      $("businessSetupFeeGbp").value = business.setupFeeGbp || 199;
+      $("businessClientsNeeded").value = business.clientsNeeded || 4;
+      $("businessOfferSummary").value = business.offerSummary || "";
+      $("browserEnabled").value = String(Boolean(browser.enabled));
+      $("browserHeadless").value = String(Boolean(browser.headless));
+      $("browserSearchEngine").value = browser.searchEngine || "duckduckgo";
+      $("browserMaxActionsPerRun").value = browser.maxActionsPerRun || 20;
+      $("browserHumanDelayMinMs").value = browser.humanDelayMinMs || 900;
+      $("browserHumanDelayMaxMs").value = browser.humanDelayMaxMs || 2200;
+      $("googlePlacesEnabled").value = String(Boolean(browser.googlePlacesEnabled));
+      $("googlePlacesLocation").value = browser.googlePlacesLocation || "London, UK";
+      $("googlePlacesMaxResults").value = browser.googlePlacesMaxResults || 8;
+      $("googlePlacesApiKey").value = "";
     }
 
     function renderAll() {
@@ -509,6 +746,9 @@
       renderTasks();
       renderLeads();
       renderLogs();
+      renderDeliveries();
+      renderReplyInbox();
+      renderLoopMemory();
       renderSettings();
       renderPlan();
     }
@@ -534,14 +774,21 @@
       }
     });
 
-    $("seedDemo").addEventListener("click", async () => {
+    $("runBrowserQuick").addEventListener("click", async () => {
       try {
-        setStatus("Seeding demo data...", "");
-        await api("/api/startup/seed", { method: "POST", body: "{}" });
+        setStatus("Running browser agent...", "");
+        await api("/api/startup/browser-agent/run", {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "dashboard-quick-browser-run",
+            goal: `Reach £${Number($("businessMonthlyTargetGbp").value || 1000)}/month fast`,
+            plan: "Find real niche leads and extract public contact opportunities",
+          }),
+        });
         await refresh(true);
-        setStatus("Demo data seeded.", "ok");
+        setStatus("Browser run completed.", "ok");
       } catch (err) {
-        setStatus("Seed failed: " + err.message, "error");
+        setStatus("Browser run failed: " + err.message, "error");
       }
     });
 
@@ -567,12 +814,16 @@
           body: JSON.stringify({
             name: $("leadName").value.trim(),
             email: $("leadEmail").value.trim(),
+            phone: $("leadPhone").value.trim(),
+            hasWebsite: $("leadHasWebsite").value ? $("leadHasWebsite").value === "true" : undefined,
             niche: $("leadNiche").value.trim(),
             valueUsd: Number($("leadValue").value || 0),
           }),
         });
         $("leadName").value = "";
         $("leadEmail").value = "";
+        $("leadPhone").value = "";
+        $("leadHasWebsite").value = "";
         $("leadNiche").value = "";
         $("leadValue").value = "";
         await refresh(true);
@@ -622,6 +873,202 @@
         setStatus("Settings saved.", "ok");
       } catch (err) {
         setStatus("Settings save failed: " + err.message, "error");
+      }
+    });
+
+    $("outreachForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Saving outreach config...", "");
+        const smtpPassword = $("smtpPassword").value;
+        await api("/api/startup/outreach/config", {
+          method: "POST",
+          body: JSON.stringify({
+            enabled: $("outreachEnabled").value.trim().toLowerCase() === "true",
+            fromName: $("fromName").value.trim(),
+            fromEmail: $("fromEmail").value.trim(),
+            replyTo: $("replyTo").value.trim(),
+            smtpHost: $("smtpHost").value.trim(),
+            smtpPort: Number($("smtpPort").value || 587),
+            smtpUser: $("smtpUser").value.trim(),
+            smtpSecure: $("smtpSecure").value.trim().toLowerCase() === "true",
+            batchSizePerRun: Number($("batchSizePerRun").value || 5),
+            minMinutesBetweenSends: Number($("minMinutesBetweenSends").value || 2),
+            minHoursBetweenMessages: Number($("minHoursBetweenMessages").value || 24),
+            subjectTemplate: $("subjectTemplate").value.trim(),
+            autoReplyEnabled: $("autoReplyEnabled").value.trim().toLowerCase() === "true",
+            autoReplyCooldownHours: Number($("autoReplyCooldownHours").value || 12),
+            autoReplySubjectTemplate: $("autoReplySubjectTemplate").value.trim(),
+            autoReplyTemplate: $("autoReplyTemplate").value.trim(),
+            ...(smtpPassword ? { smtpPassword } : {}),
+          }),
+        });
+        $("smtpPassword").value = "";
+        await refresh(true);
+        setStatus("Outreach config saved.", "ok");
+      } catch (err) {
+        setStatus("Outreach config failed: " + err.message, "error");
+      }
+    });
+
+    $("saveCalling").addEventListener("click", async () => {
+      try {
+        setStatus("Saving calling config...", "");
+        const vapiApiKey = $("vapiApiKey").value;
+        await api("/api/startup/calling/config", {
+          method: "POST",
+          body: JSON.stringify({
+            enabled: $("callingEnabled").value.trim().toLowerCase() === "true",
+            vapiAssistantId: $("vapiAssistantId").value.trim(),
+            vapiPhoneNumberId: $("vapiPhoneNumberId").value.trim(),
+            defaultCountryCode: $("callingDefaultCountryCode").value.trim(),
+            batchSizePerRun: Number($("callingBatchSizePerRun").value || 5),
+            minMinutesBetweenCalls: Number($("callingMinMinutesBetweenCalls").value || 2),
+            minHoursBetweenCalls: Number($("callingMinHoursBetweenCalls").value || 24),
+            fallbackToEmailWhenNoPhone: $("callingFallbackToEmailWhenNoPhone").value.trim().toLowerCase() === "true",
+            scriptTemplate: $("callingScriptTemplate").value.trim(),
+            ...(vapiApiKey ? { vapiApiKey } : {}),
+          }),
+        });
+        $("vapiApiKey").value = "";
+        await refresh(true);
+        setStatus("Calling config saved.", "ok");
+      } catch (err) {
+        setStatus("Calling config failed: " + err.message, "error");
+      }
+    });
+
+    $("businessForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Saving founder + browser settings...", "");
+        await api("/api/startup/state", {
+          method: "POST",
+          body: JSON.stringify({
+            business: {
+              niche: $("businessNiche").value.trim(),
+              offerName: $("businessOfferName").value.trim(),
+              monthlyTargetGbp: Number($("businessMonthlyTargetGbp").value || 1000),
+              monthlyPriceGbp: Number($("businessMonthlyPriceGbp").value || 299),
+              setupFeeGbp: Number($("businessSetupFeeGbp").value || 199),
+              clientsNeeded: Number($("businessClientsNeeded").value || 4),
+              offerSummary: $("businessOfferSummary").value.trim(),
+            },
+            browserAgent: {
+              enabled: $("browserEnabled").value.trim().toLowerCase() === "true",
+              headless: $("browserHeadless").value.trim().toLowerCase() === "true",
+              searchEngine: $("browserSearchEngine").value.trim().toLowerCase(),
+              maxActionsPerRun: Number($("browserMaxActionsPerRun").value || 20),
+              humanDelayMinMs: Number($("browserHumanDelayMinMs").value || 900),
+              humanDelayMaxMs: Number($("browserHumanDelayMaxMs").value || 2200),
+              googlePlacesEnabled: $("googlePlacesEnabled").value.trim().toLowerCase() === "true",
+              googlePlacesLocation: $("googlePlacesLocation").value.trim(),
+              googlePlacesMaxResults: Number($("googlePlacesMaxResults").value || 8),
+              ...($("googlePlacesApiKey").value.trim() ? { googlePlacesApiKey: $("googlePlacesApiKey").value.trim() } : {}),
+            },
+          }),
+        });
+        $("googlePlacesApiKey").value = "";
+        await refresh(true);
+        setStatus("Founder + browser settings saved.", "ok");
+      } catch (err) {
+        setStatus("Founder + browser save failed: " + err.message, "error");
+      }
+    });
+
+    $("runBrowserAgentNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running browser agent...", "");
+        await api("/api/startup/browser-agent/run", {
+          method: "POST",
+          body: JSON.stringify({
+            reason: "dashboard-manual-browser-run",
+            goal: `Reach £${Number($("businessMonthlyTargetGbp").value || 1000)}/month fast`,
+            plan: "Research local trade leads, extract public contact opportunities, and enrich each lead with review and business info",
+          }),
+        });
+        await refresh(true);
+        setStatus("Browser agent run completed.", "ok");
+      } catch (err) {
+        setStatus("Browser agent run failed: " + err.message, "error");
+      }
+    });
+
+    $("runCallingNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running calling now...", "");
+        await api("/api/startup/calling/run", {
+          method: "POST",
+          body: JSON.stringify({ reason: "dashboard-manual-calling" }),
+        });
+        await refresh(true);
+        setStatus("Calling run completed.", "ok");
+      } catch (err) {
+        setStatus("Calling run failed: " + err.message, "error");
+      }
+    });
+
+    $("sendOutreachNow").addEventListener("click", async () => {
+      try {
+        setStatus("Sending outreach now...", "");
+        await api("/api/startup/outreach/send-now", {
+          method: "POST",
+          body: JSON.stringify({ reason: "dashboard-send-now" }),
+        });
+        await refresh(true);
+        setStatus("Outreach run completed.", "ok");
+      } catch (err) {
+        setStatus("Outreach run failed: " + err.message, "error");
+      }
+    });
+
+    $("runAutoReplyNow").addEventListener("click", async () => {
+      try {
+        setStatus("Running auto-reply...", "");
+        await api("/api/startup/replies/auto-run", {
+          method: "POST",
+          body: JSON.stringify({ reason: "dashboard-manual-auto-reply" }),
+        });
+        await refresh(true);
+        setStatus("Auto-reply run completed.", "ok");
+      } catch (err) {
+        setStatus("Auto-reply run failed: " + err.message, "error");
+      }
+    });
+
+    $("enrichLeadsNow").addEventListener("click", async () => {
+      try {
+        setStatus("Enriching lead reviews/info...", "");
+        await api("/api/startup/leads/enrich", {
+          method: "POST",
+          body: JSON.stringify({ reason: "dashboard-manual-enrich" }),
+        });
+        await refresh(true);
+        setStatus("Lead enrichment completed.", "ok");
+      } catch (err) {
+        setStatus("Lead enrichment failed: " + err.message, "error");
+      }
+    });
+
+    $("replyIntakeForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        setStatus("Capturing reply + auto-reply...", "");
+        await api("/api/startup/replies/intake", {
+          method: "POST",
+          body: JSON.stringify({
+            fromEmail: $("replyFromEmail").value.trim(),
+            subject: $("replySubject").value.trim(),
+            text: $("replyText").value.trim(),
+          }),
+        });
+        $("replyFromEmail").value = "";
+        $("replySubject").value = "";
+        $("replyText").value = "";
+        await refresh(true);
+        setStatus("Reply captured and auto-reply processed.", "ok");
+      } catch (err) {
+        setStatus("Reply intake failed: " + err.message, "error");
       }
     });
 
