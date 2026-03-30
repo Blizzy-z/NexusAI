@@ -219,6 +219,9 @@ async function startServer() {
     minHoursBetweenCalls: number;
     minMinutesBetweenCalls: number;
     fallbackToEmailWhenNoPhone: boolean;
+    assistantDescription: string;
+    firstMessage: string;
+    systemPrompt: string;
     scriptTemplate: string;
   }
 
@@ -351,6 +354,11 @@ async function startServer() {
   const startupGooglePlacesKeyPath = path.join(startupDataDir, "google_places_api_key.txt");
   const startupVapiApiKeyPath = path.join(startupDataDir, "vapi_api_key.txt");
   let startupLoopTimer: ReturnType<typeof setInterval> | null = null;
+  let startupAuditInFlight: Promise<StartupState> | null = null;
+  let startupAuditInFlightReason: string | null = null;
+  let startupAuditLastStartedAt: number | null = null;
+  let startupAuditLastFinishedAt: number | null = null;
+  let startupAuditLastError = "";
 
   const createStartupState = (): StartupState => {
     const now = Date.now();
@@ -448,7 +456,10 @@ async function startServer() {
         minHoursBetweenCalls: 24,
         minMinutesBetweenCalls: 2,
         fallbackToEmailWhenNoPhone: true,
-        scriptTemplate: "Hi {firstName}, this is {senderName} from {offer}. We help {niche} businesses like {business} get more qualified leads and automate follow-up. Are you the best person to speak with about getting more booked jobs this month?",
+        assistantDescription: "Outbound caller for NexusAI. Calls UK local service businesses, quickly qualifies fit, handles objections politely, and books a 15-minute growth call. If no fit, exits cleanly and logs disposition.",
+        firstMessage: "Hi, is this the business owner or manager? I'm calling from NexusAI because we help local businesses get more booked jobs with a simple website and AI follow-up.",
+        systemPrompt: "You are NexusAI's outbound sales caller. Sound human, calm, and concise. Goal: book a 15-minute discovery call. Flow: intro -> permission -> qualify (website, lead flow, decision-maker) -> 20s value pitch -> CTA. Value pitch: \"We set up a conversion-focused website and AI follow-up so missed opportunities become booked jobs.\" Handle objections briefly (max 2 attempts), then close politely. If not ready: ask for best email and permission to send info. If asked to stop: apologize, end call, mark do-not-contact. Never invent results or guarantees. End each call with: DISPOSITION: booked | follow_up | not_interested | wrong_number | voicemail. SUMMARY: 1-2 lines. NEXT_ACTION: specific next step.",
+        scriptTemplate: "You are NexusAI's outbound sales caller. Sound human, calm, and concise. Goal: book a 15-minute discovery call. Flow: intro -> permission -> qualify (website, lead flow, decision-maker) -> 20s value pitch -> CTA. Value pitch: \"We set up a conversion-focused website and AI follow-up so missed opportunities become booked jobs.\" Handle objections briefly (max 2 attempts), then close politely. If not ready: ask for best email and permission to send info. If asked to stop: apologize, end call, mark do-not-contact. Never invent results or guarantees. End each call with: DISPOSITION: booked | follow_up | not_interested | wrong_number | voicemail. SUMMARY: 1-2 lines. NEXT_ACTION: specific next step.",
       },
       deliveries: [],
       ai: {
@@ -1066,16 +1077,33 @@ async function startServer() {
       const lead = candidates[i];
       const ts = Date.now();
       const phone = normalisePhoneNumber(String(lead.phone || ""), defaultCountryCode);
+      const systemPrompt = String(state.calling.systemPrompt || state.calling.scriptTemplate || "").trim();
+      const firstMessage = String(state.calling.firstMessage || "").trim();
+      const assistantDescription = String(state.calling.assistantDescription || "").trim();
+      const mergedSystemPrompt = assistantDescription
+        ? `${assistantDescription}\n\n${systemPrompt}`.trim()
+        : systemPrompt;
       const assistantOverrides = {
         model: {
           messages: [
-            {
-              role: "system",
-              content: applyTemplateVars(
-                String(state.calling.scriptTemplate || "").trim(),
-                buildLeadTemplateVars(lead, state, { "{phone}": phone }),
-              ),
-            },
+            ...(mergedSystemPrompt
+              ? [{
+                  role: "system",
+                  content: applyTemplateVars(
+                    mergedSystemPrompt,
+                    buildLeadTemplateVars(lead, state, { "{phone}": phone }),
+                  ),
+                } as const]
+              : []),
+            ...(firstMessage
+              ? [{
+                  role: "assistant",
+                  content: applyTemplateVars(
+                    firstMessage,
+                    buildLeadTemplateVars(lead, state, { "{phone}": phone }),
+                  ),
+                } as const]
+              : []),
           ],
         },
       };
@@ -2911,6 +2939,34 @@ async function startServer() {
     return state;
   };
 
+  const runStartupAuditGuarded = async (
+    reason: string,
+    options?: { skipAutopilot?: boolean; force?: boolean },
+  ): Promise<StartupState> => {
+    if (startupAuditInFlight && !options?.force) {
+      return startupAuditInFlight;
+    }
+    startupAuditInFlightReason = reason;
+    startupAuditLastStartedAt = Date.now();
+    startupAuditLastError = "";
+    startupAuditInFlight = runStartupAudit(reason, options)
+      .then((state) => {
+        startupAuditLastFinishedAt = Date.now();
+        startupAuditLastError = "";
+        return state;
+      })
+      .catch((error: any) => {
+        startupAuditLastFinishedAt = Date.now();
+        startupAuditLastError = String(error?.message || error || "Startup audit failed");
+        throw error;
+      })
+      .finally(() => {
+        startupAuditInFlight = null;
+        startupAuditInFlightReason = null;
+      });
+    return startupAuditInFlight;
+  };
+
   const ensureStartupLoop = () => {
     if (startupLoopTimer) clearInterval(startupLoopTimer);
     startupLoopTimer = setInterval(async () => {
@@ -2918,7 +2974,7 @@ async function startServer() {
         const state = await safeReadStartupState();
         if (!state.autoLoopEnabled) return;
         if (state.nextRunAt && Date.now() < state.nextRunAt) return;
-        await runStartupAudit("timer");
+        await runStartupAuditGuarded("timer");
       } catch (e: any) {
         console.error("[startup] periodic audit failed:", e?.message || e);
       }
@@ -3022,7 +3078,10 @@ async function startServer() {
       if (!Number.isFinite(next.calling.minMinutesBetweenCalls)) next.calling.minMinutesBetweenCalls = 2;
       next.calling.minMinutesBetweenCalls = Math.max(0, Math.min(60, Math.round(next.calling.minMinutesBetweenCalls)));
       if (typeof next.calling.fallbackToEmailWhenNoPhone !== "boolean") next.calling.fallbackToEmailWhenNoPhone = true;
-      next.calling.scriptTemplate = String(next.calling.scriptTemplate || "").trim() || createStartupState().calling.scriptTemplate;
+      next.calling.assistantDescription = String(next.calling.assistantDescription || "").trim() || createStartupState().calling.assistantDescription;
+      next.calling.firstMessage = String(next.calling.firstMessage || "").trim() || createStartupState().calling.firstMessage;
+      next.calling.systemPrompt = String(next.calling.systemPrompt || "").trim() || createStartupState().calling.systemPrompt;
+      next.calling.scriptTemplate = String(next.calling.scriptTemplate || "").trim() || next.calling.systemPrompt || createStartupState().calling.scriptTemplate;
       const vapiApiKey = await readStartupVapiApiKey();
       next.calling.hasVapiApiKey = Boolean(vapiApiKey);
       if (typeof next.autopilot.enabled !== "boolean") next.autopilot.enabled = true;
@@ -3165,8 +3224,17 @@ async function startServer() {
       if (body.fallbackToEmailWhenNoPhone !== undefined) {
         state.calling.fallbackToEmailWhenNoPhone = Boolean(body.fallbackToEmailWhenNoPhone);
       }
+      if (body.assistantDescription !== undefined) {
+        state.calling.assistantDescription = String(body.assistantDescription || "").trim() || createStartupState().calling.assistantDescription;
+      }
+      if (body.firstMessage !== undefined) {
+        state.calling.firstMessage = String(body.firstMessage || "").trim() || createStartupState().calling.firstMessage;
+      }
+      if (body.systemPrompt !== undefined) {
+        state.calling.systemPrompt = String(body.systemPrompt || "").trim() || createStartupState().calling.systemPrompt;
+      }
       if (body.scriptTemplate !== undefined) {
-        state.calling.scriptTemplate = String(body.scriptTemplate || "").trim() || createStartupState().calling.scriptTemplate;
+        state.calling.scriptTemplate = String(body.scriptTemplate || "").trim() || state.calling.systemPrompt || createStartupState().calling.scriptTemplate;
       }
       if (body.vapiApiKey !== undefined) await writeStartupVapiApiKey(String(body.vapiApiKey || ""));
       state.calling.hasVapiApiKey = Boolean(await readStartupVapiApiKey());
@@ -3454,7 +3522,7 @@ async function startServer() {
         });
       }
       await saveStartupState(runState);
-      const audited = await runStartupAudit(`autopilot:${reason}`, { skipAutopilot: true });
+      const audited = await runStartupAuditGuarded(`autopilot:${reason}`, { skipAutopilot: true });
       res.json({ ok: true, provider: out.provider, plan: out.plan, state: audited });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -3525,8 +3593,27 @@ async function startServer() {
   app.post("/api/startup/run-check", async (req, res) => {
     try {
       const reason = String(req.body?.reason || "manual");
-      const state = await runStartupAudit(reason);
+      const state = await runStartupAuditGuarded(reason);
       res.json({ ok: true, state });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/startup/autopilot/status", async (_req, res) => {
+    try {
+      const state = await safeReadStartupState();
+      res.json({
+        ok: true,
+        running: Boolean(startupAuditInFlight),
+        inFlightReason: startupAuditInFlightReason,
+        lastStartedAt: startupAuditLastStartedAt,
+        lastFinishedAt: startupAuditLastFinishedAt,
+        lastError: startupAuditLastError,
+        nextRunAt: state.nextRunAt,
+        autoLoopEnabled: state.autoLoopEnabled,
+        autopilotEnabled: state.autopilot.enabled,
+      });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
@@ -5017,15 +5104,15 @@ async function startServer() {
     try {
       const action = String(req.body?.action || "run_check").trim().toLowerCase();
       const reason = String(req.body?.reason || "tool-startup-control");
-      const actions = new Set(["run_check", "autopilot_run", "outreach_send_now", "browser_agent_run", "auto_reply_run", "call_run"]);
+      const actions = new Set(["run_check", "autopilot_run", "autopilot_status", "outreach_send_now", "browser_agent_run", "auto_reply_run", "call_run"]);
       if (!actions.has(action)) {
         return res.status(400).json({
-          error: `Unsupported startup control action "${action}". Allowed: run_check, autopilot_run, outreach_send_now, browser_agent_run, auto_reply_run, call_run.`,
+          error: `Unsupported startup control action "${action}". Allowed: run_check, autopilot_run, autopilot_status, outreach_send_now, browser_agent_run, auto_reply_run, call_run.`,
         });
       }
 
       if (action === "run_check") {
-        const state = await runStartupAudit(reason);
+        const state = await runStartupAuditGuarded(reason);
         return res.json({
           result: `Startup run-check completed.\nReason: ${reason}\nLeads: ${state.leads.length}\nMRR USD: ${state.stats.mrrUsd}\nReplies: ${state.stats.replies}`,
           state,
@@ -5034,12 +5121,30 @@ async function startServer() {
 
       if (action === "autopilot_run") {
         const out = await runStartupAutopilot(reason);
-        const audited = await runStartupAudit(`tool:${reason}`, { skipAutopilot: true });
+        const audited = await runStartupAuditGuarded(`tool:${reason}`, { skipAutopilot: true });
         return res.json({
           result: `Startup autopilot completed.\nProvider: ${out.provider}\nSummary: ${out.parsed.summary || "n/a"}\nLeads: ${audited.leads.length}`,
           provider: out.provider,
           plan: out.plan,
           state: audited,
+        });
+      }
+
+      if (action === "autopilot_status") {
+        const state = await safeReadStartupState();
+        return res.json({
+          result: `Autopilot status.\nRunning: ${Boolean(startupAuditInFlight)}\nReason: ${startupAuditInFlightReason || "none"}\nNext run: ${state.nextRunAt || 0}\nAuto loop: ${state.autoLoopEnabled}`,
+          status: {
+            running: Boolean(startupAuditInFlight),
+            inFlightReason: startupAuditInFlightReason,
+            lastStartedAt: startupAuditLastStartedAt,
+            lastFinishedAt: startupAuditLastFinishedAt,
+            lastError: startupAuditLastError,
+            nextRunAt: state.nextRunAt,
+            autoLoopEnabled: state.autoLoopEnabled,
+            autopilotEnabled: state.autopilot.enabled,
+          },
+          state,
         });
       }
 
@@ -6166,7 +6271,7 @@ async function startServer() {
     }
     console.log(`└─────────────────────────────────────────────────┘\n`);
     ensureStartupLoop();
-    runStartupAudit("startup").catch((e: any) => {
+    runStartupAuditGuarded("startup").catch((e: any) => {
       console.error("[startup] initial audit failed:", e?.message || e);
     });
   });

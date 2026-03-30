@@ -437,6 +437,9 @@
             <option value="true">Email fallback enabled</option>
             <option value="false">Email fallback disabled</option>
           </select>
+          <input id="callingAssistantDescription" class="full" placeholder="Assistant description" />
+          <input id="callingFirstMessage" class="full" placeholder="First message" />
+          <textarea id="callingSystemPrompt" class="full" placeholder="System prompt"></textarea>
           <textarea id="callingScriptTemplate" class="full" placeholder="Call script template"></textarea>
           <button id="saveCalling" type="button">Save calling config</button>
         </form>
@@ -700,6 +703,9 @@
       $("callingMinMinutesBetweenCalls").value = Number.isFinite(calling.minMinutesBetweenCalls) ? calling.minMinutesBetweenCalls : 2;
       $("callingMinHoursBetweenCalls").value = calling.minHoursBetweenCalls || 24;
       $("callingFallbackToEmailWhenNoPhone").value = String(calling.fallbackToEmailWhenNoPhone !== false);
+      $("callingAssistantDescription").value = calling.assistantDescription || "";
+      $("callingFirstMessage").value = calling.firstMessage || "";
+      $("callingSystemPrompt").value = calling.systemPrompt || "";
       $("callingScriptTemplate").value = calling.scriptTemplate || "";
       const outreach = state.outreach || {};
       $("outreachEnabled").value = String(Boolean(outreach.enabled));
@@ -926,6 +932,9 @@
             minMinutesBetweenCalls: Number($("callingMinMinutesBetweenCalls").value || 2),
             minHoursBetweenCalls: Number($("callingMinHoursBetweenCalls").value || 24),
             fallbackToEmailWhenNoPhone: $("callingFallbackToEmailWhenNoPhone").value.trim().toLowerCase() === "true",
+            assistantDescription: $("callingAssistantDescription").value.trim(),
+            firstMessage: $("callingFirstMessage").value.trim(),
+            systemPrompt: $("callingSystemPrompt").value.trim(),
             scriptTemplate: $("callingScriptTemplate").value.trim(),
             ...(vapiApiKey ? { vapiApiKey } : {}),
           }),
