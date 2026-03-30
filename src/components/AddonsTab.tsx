@@ -14,9 +14,9 @@ import {
   Play, Square, ChevronDown, ChevronRight,
   Wifi, WifiOff, Server, Shield, Radio, Layers,
   Terminal, HardDrive, Cloud, Zap, AlertTriangle,
-  Link, Globe, Package,
+  Link, Globe, Package, Github,
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '../lib/utils';
 
 // Types
 interface AddonStatus { connected: boolean; label: string; }
@@ -704,6 +704,396 @@ function StrapAddon() {
 }
 
 //
+// GITHUB CLI CONTROL ADDON
+//
+function GitHubControlAddon() {
+  const [owner, setOwner] = useState('');
+  const [repo, setRepo] = useState('');
+  const [token, setToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [status, setStatus] = useState<any>(null);
+  const [result, setResult] = useState<any>(null);
+  const [op, setOp] = useState<'auth_status'|'repo_view'|'pr_list'|'issue_list'|'workflow_list'|'workflow_runs'>('repo_view');
+
+  const loadConfig = async () => {
+    try {
+      const [cfgRes, statusRes] = await Promise.all([
+        fetch('/api/github-cli/config', { signal: AbortSignal.timeout(5000) }),
+        fetch('/api/github-cli/status', { signal: AbortSignal.timeout(8000) }),
+      ]);
+      const cfg = await cfgRes.json().catch(() => ({}));
+      const st = await statusRes.json().catch(() => ({}));
+      if (cfg?.config) {
+        setOwner(String(cfg.config.owner || ''));
+        setRepo(String(cfg.config.repo || ''));
+      }
+      if (st?.ok) setStatus(st);
+    } catch {}
+  };
+
+  useEffect(() => { loadConfig(); }, []);
+
+  const saveRepoConfig = async () => {
+    setSaving(true);
+    try {
+      const r = await fetch('/api/github-cli/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner, repo }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      await loadConfig();
+      setResult({ ok: true, summary: `Saved default repo ${owner}/${repo}` });
+    } catch (e: any) {
+      setResult({ ok: false, summary: e.message || 'Failed to save repo config' });
+    }
+    setSaving(false);
+  };
+
+  const saveToken = async () => {
+    setSaving(true);
+    try {
+      const r = await fetch('/api/github-cli/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStatus(d);
+      setResult({ ok: true, summary: token ? 'GitHub token saved.' : 'GitHub token cleared.' });
+    } catch (e: any) {
+      setResult({ ok: false, summary: e.message || 'Failed to save token' });
+    }
+    setSaving(false);
+  };
+
+  const refreshStatus = async () => {
+    setChecking(true);
+    try {
+      const r = await fetch('/api/github-cli/status', { signal: AbortSignal.timeout(10000) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStatus(d);
+      setResult({ ok: true, summary: 'GitHub CLI status refreshed.' });
+    } catch (e: any) {
+      setResult({ ok: false, summary: e.message || 'Failed to refresh status' });
+    }
+    setChecking(false);
+  };
+
+  const runOperation = async () => {
+    setRunning(true);
+    try {
+      const r = await fetch('/api/github-cli/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: op, owner, repo, state: 'open', limit: 10 }),
+        signal: AbortSignal.timeout(35000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setResult(d);
+    } catch (e: any) {
+      setResult({ ok: false, error: e.message || 'Failed to run operation' });
+    }
+    setRunning(false);
+  };
+
+  const stateBadge = status?.auth?.authenticated
+    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+    : 'bg-amber-500/10 border-amber-500/25 text-amber-400';
+
+  return (
+    <div className="space-y-5">
+      <p className="text-[11px] text-slate-500 leading-relaxed">
+        Connect NexusAI to GitHub CLI and let AI run managed GitHub operations (repo info, PR lists, issues, workflows)
+        through safe allowlisted server endpoints.
+      </p>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CLI Status</p>
+          <button onClick={refreshStatus} disabled={checking}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 rounded-lg text-[10px] text-slate-400 hover:text-white disabled:opacity-50">
+            {checking ? <RefreshCw className="w-3 h-3 animate-spin"/> : <RefreshCw className="w-3 h-3"/>}
+            Refresh
+          </button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            gh installed: <span className={cn('font-mono', status?.installed ? 'text-emerald-400' : 'text-red-400')}>{status?.installed ? 'yes' : 'no'}</span>
+          </div>
+          <div className={cn('px-3 py-2 rounded-lg border font-mono', stateBadge)}>
+            auth: {status?.auth?.authenticated ? `ok (${status?.auth?.login || 'logged in'})` : 'not authenticated'}
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            default repo: <span className="font-mono text-indigo-300">{status?.config?.owner && status?.config?.repo ? `${status.config.owner}/${status.config.repo}` : '(unset)'}</span>
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            token source: <span className="font-mono text-slate-300">{status?.auth?.source || 'none'}</span>
+          </div>
+        </div>
+        {status?.auth?.error && (
+          <p className="text-[10px] text-amber-400 px-3 py-2 rounded-lg bg-amber-500/8 border border-amber-500/20">
+            {status.auth.error}
+          </p>
+        )}
+      </div>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Repository Defaults</p>
+        <InputRow label="Owner" value={owner} onChange={setOwner} placeholder="abdul" mono />
+        <InputRow label="Repo" value={repo} onChange={setRepo} placeholder="nexusai_public" mono />
+        <button onClick={saveRepoConfig} disabled={saving || !owner || !repo}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/25 text-indigo-300 rounded-xl text-[11px] font-bold disabled:opacity-50 transition-all">
+          {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
+          Save Repo Defaults
+        </button>
+      </div>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">GitHub Token (optional, recommended)</p>
+        <div className="flex items-center gap-2">
+          <input
+            type={showToken ? 'text' : 'password'}
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="ghp_... or github_pat_..."
+            className="flex-1 bg-slate-900/60 border border-white/8 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-indigo-500/30 font-mono"
+          />
+          <button onClick={() => setShowToken(v => !v)}
+            className="px-3 py-2 bg-white/5 hover:bg-white/8 border border-white/10 rounded-lg text-[10px] text-slate-400 hover:text-white">
+            {showToken ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={saveToken} disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/25 text-emerald-300 rounded-xl text-[11px] font-bold disabled:opacity-50 transition-all">
+            {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Shield className="w-3.5 h-3.5"/>}
+            Save / Update Token
+          </button>
+          <button onClick={() => { setToken(''); }}
+            className="px-4 py-2 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl text-[11px] text-slate-400 hover:text-white">
+            Clear Field
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Run Managed Operation</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {([
+            { id: 'auth_status', label: 'Auth Status' },
+            { id: 'repo_view', label: 'Repo View' },
+            { id: 'pr_list', label: 'PR List' },
+            { id: 'issue_list', label: 'Issue List' },
+            { id: 'workflow_list', label: 'Workflows' },
+            { id: 'workflow_runs', label: 'Workflow Runs' },
+          ] as const).map(item => (
+            <button key={item.id} onClick={() => setOp(item.id)}
+              className={cn('px-3 py-2 rounded-lg border text-[10px] font-bold transition-all',
+                op === item.id ? 'bg-indigo-500/15 border-indigo-500/25 text-indigo-300' : 'bg-white/3 border-white/8 text-slate-500 hover:text-white')}>
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={runOperation} disabled={running}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/25 text-cyan-300 rounded-xl text-[11px] font-bold disabled:opacity-50 transition-all">
+          {running ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Play className="w-3.5 h-3.5"/>}
+          Run {op}
+        </button>
+      </div>
+
+      {result && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Last Result</p>
+          <pre className="bg-black/60 border border-white/8 rounded-xl p-3 font-mono text-[10px] text-slate-300 max-h-64 overflow-auto whitespace-pre-wrap">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+//
+// NEXUSAI UPDATER ADDON
+//
+function NexusUpdaterAddon() {
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/updater/status', { signal: AbortSignal.timeout(10000) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStatus(d);
+      setResult(null);
+    } catch (e: any) {
+      setResult({ ok: false, error: e.message || 'Failed to load updater status' });
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadStatus(); }, []);
+
+  const checkRemote = async () => {
+    setChecking(true);
+    try {
+      const r = await fetch('/api/updater/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(45000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStatus(d.status || d);
+      setResult({ ok: true, summary: 'Remote check completed.', data: d });
+    } catch (e: any) {
+      setResult({ ok: false, error: e.message || 'Remote check failed' });
+    }
+    setChecking(false);
+  };
+
+  const applyUpdate = async () => {
+    setApplying(true);
+    try {
+      const r = await fetch('/api/updater/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(130000),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+      setStatus(d.status || status);
+      setResult(d);
+    } catch (e: any) {
+      setResult({ ok: false, error: e.message || 'Update failed' });
+    }
+    setApplying(false);
+  };
+
+  const shortHash = (value: string) => value ? value.slice(0, 8) : '-';
+  const cleanBadge = status?.clean
+    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
+    : 'bg-red-500/10 border-red-500/25 text-red-400';
+  const updateBadge = status?.hasUpdates
+    ? 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+    : 'bg-white/3 border-white/8 text-slate-500';
+
+  return (
+    <div className="space-y-5">
+      <p className="text-[11px] text-slate-500 leading-relaxed">
+        Safe in-app updater for this NexusAI install. It runs real <code className="text-indigo-300">git fetch</code> and
+        fast-forward-only <code className="text-indigo-300">git pull --ff-only</code>. It will not update while your working
+        tree has uncommitted changes.
+      </p>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Repository Status</p>
+          <button
+            onClick={loadStatus}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/8 border border-white/10 rounded-lg text-[10px] text-slate-400 hover:text-white disabled:opacity-50"
+          >
+            {loading ? <RefreshCw className="w-3 h-3 animate-spin"/> : <RefreshCw className="w-3 h-3"/>}
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            repo root: <span className="font-mono text-slate-300">{status?.repoRoot || '(unknown)'}</span>
+          </div>
+          <div className={cn('px-3 py-2 rounded-lg border font-mono', cleanBadge)}>
+            workspace: {status?.clean ? 'clean' : 'dirty'}
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            branch: <span className="font-mono text-indigo-300">{status?.branch || '(unknown)'}</span>
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            upstream: <span className="font-mono text-slate-300">{status?.tracking || '(none)'}</span>
+          </div>
+          <div className={cn('px-3 py-2 rounded-lg border text-slate-400', updateBadge)}>
+            behind: <span className="font-mono">{Number(status?.behind || 0)}</span> | ahead: <span className="font-mono">{Number(status?.ahead || 0)}</span>
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            can update: <span className={cn('font-mono', status?.canUpdate ? 'text-emerald-400' : 'text-slate-500')}>{status?.canUpdate ? 'yes' : 'no'}</span>
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            local: <span className="font-mono text-slate-300">{shortHash(String(status?.localHead?.hash || ''))}</span>
+            <p className="text-[10px] text-slate-600 mt-1 truncate">{status?.localHead?.subject || '-'}</p>
+          </div>
+          <div className="px-3 py-2 rounded-lg bg-white/3 border border-white/5 text-slate-400">
+            remote: <span className="font-mono text-slate-300">{shortHash(String(status?.remoteHead?.hash || ''))}</span>
+            <p className="text-[10px] text-slate-600 mt-1 truncate">{status?.remoteHead?.subject || '-'}</p>
+          </div>
+        </div>
+
+        {Array.isArray(status?.dirtyFiles) && status.dirtyFiles.length > 0 && (
+          <div className="p-3 rounded-lg bg-red-500/8 border border-red-500/20">
+            <p className="text-[10px] text-red-300 font-semibold mb-1">Dirty files ({status.dirtyFiles.length})</p>
+            <div className="max-h-20 overflow-y-auto space-y-0.5">
+              {status.dirtyFiles.slice(0, 10).map((f: string) => (
+                <p key={f} className="text-[10px] font-mono text-red-200/90">{f}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!status?.blockedReason && (
+          <p className="text-[10px] text-amber-400 px-3 py-2 rounded-lg bg-amber-500/8 border border-amber-500/20">
+            {status.blockedReason}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={checkRemote}
+          disabled={checking}
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/25 text-cyan-300 rounded-xl text-[11px] font-bold disabled:opacity-50 transition-all"
+        >
+          {checking ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Download className="w-3.5 h-3.5"/>}
+          Check Remote
+        </button>
+
+        <button
+          onClick={applyUpdate}
+          disabled={applying || !status?.canUpdate}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/25 text-emerald-300 rounded-xl text-[11px] font-bold disabled:opacity-50 transition-all"
+        >
+          {applying ? <RefreshCw className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
+          Apply Update (FF-only)
+        </button>
+      </div>
+
+      {result && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Last Updater Result</p>
+          <pre className="bg-black/60 border border-white/8 rounded-xl p-3 font-mono text-[10px] text-slate-300 max-h-64 overflow-auto whitespace-pre-wrap">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+//
 // MAIN ADDONS TAB
 //
 export default function AddonsTab() {
@@ -746,6 +1136,19 @@ export default function AddonsTab() {
         accentColor="text-purple-400" borderColor="border-purple-500/25">
         <DoomcaseAddon/>
       </AddonCard>
+
+      <AddonCard id="github-cli" icon={<Github className="w-5 h-5"/>} title="GitHub CLI Control"
+        subtitle="Managed GitHub automation for NexusAI agent + chat tools"
+        accentColor="text-indigo-400" borderColor="border-indigo-500/25">
+        <GitHubControlAddon/>
+      </AddonCard>
+
+      <AddonCard id="nexus-updater" icon="🔄" title="NexusAI Updater"
+        subtitle="Safe fast-forward updater for this local repo"
+        accentColor="text-emerald-400" borderColor="border-emerald-500/25">
+        <NexusUpdaterAddon/>
+      </AddonCard>
     </div>
   );
 }
+

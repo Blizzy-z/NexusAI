@@ -32,6 +32,7 @@ const OSBuilder    = lazy(() => import('./pages/OSBuilder'));
 const AIMaker      = lazy(() => import('./pages/AIMaker'));
 const BusinessHub  = lazy(() => import('./pages/BusinessHub'));
 const NexusAITools   = lazy(() => import('./pages/NexusAITools'));
+const NexusAIOmni    = lazy(() => import('./pages/NexusAIOmni'));
 const BioSuitMonitor = lazy(() => import('./pages/BioSuitMonitor'));
 const JarvisTable    = lazy(() => import('./pages/JarvisTable'));
 const DroneRef       = lazy(() => import('./pages/DroneRef'));
@@ -40,7 +41,7 @@ import { SettingsProvider } from './context/SettingsContext';
 import { ToastProvider } from './context/ToastContext';
 import {
   LayoutDashboard, MessageSquare, Image, Cpu, Settings as SettingsIcon,
-  MoreHorizontal, Bot, Code, Wrench
+  MoreHorizontal, Bot, Code, Wrench, Command
 } from 'lucide-react';
 
 // Detect mobile/iPhone
@@ -99,6 +100,24 @@ const MOBILE_TABS = [
   { id: 'settings',  icon: SettingsIcon,    label: 'Settings' },
 ];
 
+const QUICK_COMMANDS: { id: string; label: string; hint: string; keywords: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', hint: 'Main overview', keywords: 'dashboard home overview stats' },
+  { id: 'chat', label: 'Chat Studio', hint: 'Direct chat', keywords: 'chat studio message ai' },
+  { id: 'omni', label: 'NexusAI Omni', hint: 'Unified AI control', keywords: 'omni control assistant' },
+  { id: 'aitools', label: 'AI Tools Hub', hint: 'All tools', keywords: 'tools ai hub' },
+  { id: 'agents', label: 'Agent Swarm', hint: 'Multi-agent tools', keywords: 'agents swarm automation' },
+  { id: 'models', label: 'Model Manager', hint: 'Models + VRAM', keywords: 'models ollama vram' },
+  { id: 'trainer', label: 'Model Trainer', hint: 'Fine-tuning workflows', keywords: 'trainer training model' },
+  { id: 'code', label: 'Nexus Code', hint: 'Code editor', keywords: 'code editor dev' },
+  { id: 'browser', label: 'Nexus Browser', hint: 'Browser tasks', keywords: 'browser web automation' },
+  { id: 'kali', label: 'Kali VM', hint: 'Security workspace', keywords: 'kali vm security' },
+  { id: 'claw', label: 'NexusClaw', hint: 'OpenClaw ops', keywords: 'claw openclaw tools' },
+  { id: 'osint', label: 'OSINT Intel', hint: 'Investigation tools', keywords: 'osint intel search recon' },
+  { id: 'biz-leads', label: 'Business: Lead Generator', hint: 'Find clients', keywords: 'business leads revenue clients' },
+  { id: 'flashcards', label: 'Life Hub: Flashcards', hint: 'Study mode', keywords: 'life hub flashcards study' },
+  { id: 'settings', label: 'Settings', hint: 'System configuration', keywords: 'settings config preferences' },
+];
+
 export default function App() {
   const PUBLIC_WEB_URL = 'https://nexusais.app';
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -108,6 +127,8 @@ export default function App() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
   const [networkInfo, setNetworkInfo] = useState<{primaryUrl:string,localIps:string[],port:number}|null>(null);
   const isMobile = useIsMobile();
   useAutoScale();
@@ -131,6 +152,29 @@ export default function App() {
     const hasOnboarded = localStorage.getItem('nexus_onboarded');
     if (!hasOnboarded) setShowOnboarding(true);
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setCommandOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setCommandOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const filteredCommands = QUICK_COMMANDS
+    .filter((cmd) => {
+      const q = commandQuery.trim().toLowerCase();
+      if (!q) return true;
+      const hay = `${cmd.label} ${cmd.hint} ${cmd.keywords}`.toLowerCase();
+      return hay.includes(q);
+    })
+    .slice(0, 10);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -159,6 +203,7 @@ export default function App() {
       case 'study':      return <LifeHub initialTab='study' />;
       case 'centre':     return <NexusCentre />;
       case 'aitools':    return <NexusAITools />;
+      case 'omni':       return <NexusAIOmni />;
       case 'osint':      return <NexusOSINT />;
       case 'admin':      return <Admin />;
       case 'dev':        return <Dev />;
@@ -236,6 +281,7 @@ export default function App() {
                 <div style={{position:'absolute',bottom:0,left:0,right:0,background:'#0f0f1a',borderTop:'1px solid rgba(255,255,255,0.1)', borderRadius:'20px 20px 0 0',padding:'12px 0 calc(24px + env(safe-area-inset-bottom))', maxHeight:'70vh',overflowY:'auto'}} onClick={e => e.stopPropagation()}>
                   <div style={{width:'36px',height:'4px',borderRadius:'2px',background:'rgba(255,255,255,0.15)',margin:'0 auto 16px'}}/>
                   {[
+                    { id:'omni',      label:'NexusAI Omni',      emoji:'🚀' },
                     { id:'models',    label:'Model Manager',     emoji:'📚' },
                     { id:'trainer',   label:'AI Model Trainer',  emoji:'🧠' },
                     { id:'agents',    label:'AI Agents',         emoji:'⚡' },
@@ -340,7 +386,11 @@ export default function App() {
           )}
 
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onOpenCommandPalette={() => setCommandOpen(true)}
+            />
             <main style={{flex:1, overflow:'hidden', position:'relative', display:'flex', flexDirection:'column', minWidth:0}}>
 
               <AnimatePresence mode="wait">
@@ -372,6 +422,45 @@ export default function App() {
                         className="px-4 py-2 bg-white/5 text-slate-300 rounded-xl text-sm font-bold hover:bg-white/10 transition-colors">
                         Later
                       </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {commandOpen && (
+                <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-sm flex items-start justify-center pt-24" onClick={() => setCommandOpen(false)}>
+                  <div className="w-full max-w-xl mx-4 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+                      <Command className="w-4 h-4 text-indigo-400" />
+                      <input
+                        autoFocus
+                        value={commandQuery}
+                        onChange={(e) => setCommandQuery(e.target.value)}
+                        placeholder="Jump to page... (Ctrl+P)"
+                        className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+                      />
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {filteredCommands.map((cmd) => (
+                        <button
+                          key={cmd.id}
+                          onClick={() => {
+                            setActiveTab(cmd.id);
+                            setCommandOpen(false);
+                            setCommandQuery('');
+                          }}
+                          className="w-full text-left px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-white font-medium">{cmd.label}</p>
+                            <p className="text-[10px] text-slate-500">{cmd.id}</p>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">{cmd.hint}</p>
+                        </button>
+                      ))}
+                      {filteredCommands.length === 0 && (
+                        <p className="px-4 py-6 text-xs text-slate-500">No matches found.</p>
+                      )}
                     </div>
                   </div>
                 </div>

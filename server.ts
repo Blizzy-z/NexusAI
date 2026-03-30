@@ -4911,6 +4911,158 @@ async function startServer() {
     }
   });
 
+  // ── /api/updater/* — safe git updater for local NexusAI install ───────────────
+  interface UpdaterHead {
+    hash: string;
+    subject: string;
+  }
+
+  interface UpdaterStatus {
+    repoRoot: string;
+    branch: string;
+    tracking: string;
+    clean: boolean;
+    dirtyFiles: string[];
+    ahead: number;
+    behind: number;
+    hasUpdates: boolean;
+    canUpdate: boolean;
+    blockedReason: string;
+    localHead: UpdaterHead | null;
+    remoteHead: UpdaterHead | null;
+    checkedAt: number;
+  }
+
+  const runGit = async (args: string[], timeoutMs = 20000) => {
+    const timeout = Math.max(2000, Math.min(120000, Math.round(Number(timeoutMs) || 20000)));
+    return execFileAsync("git", args, {
+      cwd: process.cwd(),
+      env: { ...process.env },
+      timeout,
+      windowsHide: true,
+      maxBuffer: 1024 * 1024 * 4,
+    });
+  };
+
+  const parseAheadBehind = (value: string): { ahead: number; behind: number } => {
+    const clean = String(value || "").trim();
+    const match = clean.match(/^(-?\d+)\s+(-?\d+)$/);
+    if (!match) return { ahead: 0, behind: 0 };
+    return { ahead: Math.max(0, Number(match[1]) || 0), behind: Math.max(0, Number(match[2]) || 0) };
+  };
+
+  const collectUpdaterStatus = async (opts: { fetchRemote?: boolean } = {}): Promise<UpdaterStatus> => {
+    const gitRootOut = await runGit(["rev-parse", "--show-toplevel"], 8000);
+    const repoRoot = String(gitRootOut.stdout || "").trim();
+    const branchOut = await runGit(["rev-parse", "--abbrev-ref", "HEAD"], 8000);
+    const branch = String(branchOut.stdout || "").trim();
+    const trackingOut = await runGit(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], 8000).catch(() => ({ stdout: "", stderr: "" } as any));
+    const tracking = String(trackingOut.stdout || "").trim();
+
+    if (opts.fetchRemote !== false && tracking) {
+      await runGit(["fetch", "--prune", "--quiet"], 60000).catch(() => {});
+    }
+
+    const statusOut = await runGit(["status", "--porcelain"], 10000);
+    const dirtyFiles = String(statusOut.stdout || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.length > 3 ? line.slice(3).trim() : line);
+    const clean = dirtyFiles.length === 0;
+
+    const aheadBehindOut = tracking
+      ? await runGit(["rev-list", "--left-right", "--count", `HEAD...${tracking}`], 10000).catch(() => ({ stdout: "0 0" } as any))
+      : ({ stdout: "0 0" } as any);
+    const { ahead, behind } = parseAheadBehind(String(aheadBehindOut.stdout || "0 0"));
+
+    const localHeadRaw = await runGit(["log", "-1", "--pretty=format:%H%x09%s"], 8000).catch(() => ({ stdout: "" } as any));
+    const [localHash = "", ...localSubjectParts] = String(localHeadRaw.stdout || "").trim().split("\t");
+    const localHead: UpdaterHead | null = localHash ? { hash: localHash, subject: localSubjectParts.join("\t") } : null;
+
+    let remoteHead: UpdaterHead | null = null;
+    if (tracking) {
+      const remoteHeadRaw = await runGit(["log", "-1", tracking, "--pretty=format:%H%x09%s"], 8000).catch(() => ({ stdout: "" } as any));
+      const [remoteHash = "", ...remoteSubjectParts] = String(remoteHeadRaw.stdout || "").trim().split("\t");
+      if (remoteHash) {
+        remoteHead = { hash: remoteHash, subject: remoteSubjectParts.join("\t") };
+      }
+    }
+
+    let blockedReason = "";
+    if (!tracking) blockedReason = `No upstream configured for branch "${branch}".`;
+    else if (!clean) blockedReason = "Working tree is dirty. Commit or stash local changes before updating.";
+    else if (ahead > 0) blockedReason = "Branch is ahead of upstream. Push or reconcile local commits first.";
+    else if (behind === 0) blockedReason = "Already up to date.";
+
+    const hasUpdates = behind > 0;
+    const canUpdate = Boolean(tracking && clean && ahead === 0 && behind > 0);
+
+    return {
+      repoRoot,
+      branch,
+      tracking,
+      clean,
+      dirtyFiles,
+      ahead,
+      behind,
+      hasUpdates,
+      canUpdate,
+      blockedReason,
+      localHead,
+      remoteHead,
+      checkedAt: Date.now(),
+    };
+  };
+
+  app.get("/api/updater/status", async (_req: any, res: any) => {
+    try {
+      const status = await collectUpdaterStatus({ fetchRemote: false });
+      res.json(status);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Failed to read updater status." });
+    }
+  });
+
+  app.post("/api/updater/check", async (_req: any, res: any) => {
+    try {
+      const status = await collectUpdaterStatus({ fetchRemote: true });
+      res.json({ ok: true, status });
+    } catch (e: any) {
+      res.status(500).json({ ok: false, error: e.message || "Failed to check remote updates." });
+    }
+  });
+
+  app.post("/api/updater/apply", async (_req: any, res: any) => {
+    try {
+      const before = await collectUpdaterStatus({ fetchRemote: true });
+      if (!before.canUpdate) {
+        return res.status(400).json({
+          ok: false,
+          error: before.blockedReason || "Updater is blocked by repo state.",
+          status: before,
+        });
+      }
+
+      const pull = await runGit(["pull", "--ff-only"], 90000);
+      const after = await collectUpdaterStatus({ fetchRemote: false });
+      res.json({
+        ok: true,
+        status: after,
+        pull: {
+          stdout: String(pull.stdout || "").trim(),
+          stderr: String(pull.stderr || "").trim(),
+        },
+      });
+    } catch (e: any) {
+      const stderr = String(e?.stderr || e?.message || "").trim();
+      res.status(500).json({
+        ok: false,
+        error: stderr || "Update apply failed.",
+      });
+    }
+  });
+
   // ── /api/dev-log — development change log (append-only) ─────────────────────
   const devLogEntries: { ts: number; version: string; type: string; msg: string }[] = [
 

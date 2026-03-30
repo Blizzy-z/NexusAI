@@ -3,8 +3,8 @@ import {
   LayoutDashboard, MessageSquare, Image as ImageIcon, Users, Code, Monitor,
   Zap, ShieldAlert, Settings, Terminal, Home, Briefcase, Shapes, Youtube,
   Brain, Cpu, Sparkles, Library, DollarSign, Phone, Globe, TrendingUp,
-  BarChart3, Search, ChevronDown, ChevronRight, Bot,
-  BookOpen, StickyNote, CheckSquare, Target, Timer,
+  BarChart3, Search, ChevronDown, ChevronRight, Bot, Rocket,
+  BookOpen, StickyNote, CheckSquare, Target, Timer, Command,
   Shield, Cpu as CpuIcon, Globe2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -12,6 +12,7 @@ import { cn } from '../lib/utils';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onOpenCommandPalette?: () => void;
 }
 
 const BUSINESS_ITEMS = [
@@ -35,6 +36,7 @@ const LIFE_ITEMS = [
 const SECTIONS = [
   { label: 'Main', items: [
     { id: 'centre',     label: 'The Centre',       icon: Zap },
+    { id: 'omni',       label: 'NexusAI Omni',     icon: Rocket },
     { id: 'aitools',    label: 'AI Tools Hub',      icon: Sparkles },
     { id: 'dashboard',  label: 'Dashboard',        icon: LayoutDashboard },
     { id: 'chat',       label: 'Chat Studio',       icon: MessageSquare },
@@ -68,7 +70,7 @@ const SECTIONS = [
   ]},
 ];
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, onOpenCommandPalette }: SidebarProps) {
   const [lifeOpen, setLifeOpen] = useState(
     LIFE_ITEMS.some(b => b.id === activeTab) || activeTab === 'lifehub'
   );
@@ -113,11 +115,21 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       </div>
       <div className="flex-1 overflow-y-auto py-2 custom-scrollbar">
         {[...SECTIONS[0].items,
+          {id:'command-palette', label:'Command Palette', icon:Command},
           {id:'biz-leads', label:'Business', icon:DollarSign},
           {id:'flashcards', label:'Life Hub', icon:BookOpen},
           ...SECTIONS.slice(1).flatMap(s=>s.items)
         ].map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} title={item.label}
+          <button
+            key={item.id}
+            onClick={() => {
+              if (item.id === 'command-palette') {
+                onOpenCommandPalette?.();
+                return;
+              }
+              setActiveTab(item.id);
+            }}
+            title={item.label}
             className={cn("w-full flex items-center justify-center py-2.5 transition-all",
               activeTab===item.id ? "text-indigo-400" : "text-slate-600 hover:text-slate-300")}>
             <item.icon className="w-4 h-4"/>
@@ -157,6 +169,15 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   {item.label}
                 </button>
               ))}
+
+              <button
+                onClick={() => onOpenCommandPalette?.()}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"
+              >
+                <Command className="w-4 h-4 shrink-0 text-slate-500 group-hover:text-slate-300" />
+                Command Palette
+                <span className="ml-auto text-[10px] text-slate-600">Ctrl+P</span>
+              </button>
 
               {/* Business Hub expandable */}
               <div>
